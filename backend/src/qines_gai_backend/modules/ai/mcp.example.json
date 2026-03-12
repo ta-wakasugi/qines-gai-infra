@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "dspace": {
+      "transport": "streamable_http",
+      "url": "http://host.docker.internal:8000/mcp",
+      "enabled": true
+    }
+  }
+}

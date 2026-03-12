@@ -1,0 +1,3948 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FastAPI",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/documents/search": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "A002:Search Document",
+        "description": "指定したクエリをもとにドキュメントを検索します。\n\nArgs:\n    user(User): 認証済みユーザー情報\n    service(DocumentService): ドキュメントサービス\n    q(str): 検索クエリ\n    hits_per_page(int): 1ページに含めるデータの最大数(デフォルト:7)\n    page(int): データを取得したいページ番号(デフォルト:1)\n    uploader(list[Literal['user', 'admin']]): ドキュメントのアップロード者('user'または'admin')\n    genre(str | None): AUTOSARドキュメントのワーキンググループ\n    release(str | None): AUTOSARドキュメントのリリースバージョン\n\nReturns:\n    SearchDocumentsResponse: 検索結果をマッピングしたレスポンス。\n\nRaises:\n    HTTPException(400): クエリパラメータ関係のエラーが発生した場合。\n    HTTPException(500): サーバーエラーが発生した場合。",
+        "operationId": "A002",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "検索クエリ",
+              "examples": [
+                "CAN driver"
+              ],
+              "title": "Q"
+            },
+            "description": "検索クエリ"
+          },
+          {
+            "name": "hits_per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "1ページに含める検索結果の数",
+              "examples": [
+                7
+              ],
+              "default": 7,
+              "title": "Hits Per Page"
+            },
+            "description": "1ページに含める検索結果の数"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "取得したいページ番号",
+              "examples": [
+                1
+              ],
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "取得したいページ番号"
+          },
+          {
+            "name": "uploader[]",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "user",
+                      "admin"
+                    ],
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ドキュメントのアップロード者(['user']または['admin']または['user', 'admin']のリスト)",
+              "examples": [
+                [
+                  "admin"
+                ]
+              ],
+              "default": [
+                "user",
+                "admin"
+              ],
+              "title": "Uploader[]"
+            },
+            "description": "ドキュメントのアップロード者(['user']または['admin']または['user', 'admin']のリスト)"
+          },
+          {
+            "name": "genre",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "AUTOSARドキュメントのワーキンググループ",
+              "examples": [
+                "SWS,EXP"
+              ],
+              "title": "Genre"
+            },
+            "description": "AUTOSARドキュメントのワーキンググループ"
+          },
+          {
+            "name": "release",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "AUTOSARドキュメントのリリースバージョン",
+              "examples": [
+                "R4-2-2"
+              ],
+              "title": "Release"
+            },
+            "description": "AUTOSARドキュメントのリリースバージョン"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchDocumentsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "example": {
+                  "detail": "Internal Server Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "invalid_query": {
+                    "value": {
+                      "detail": "Invalid query parameter value"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/documents/upload": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "A016:Upload Document",
+        "description": "ファイルアップロードエンドポイント\n\nArgs:\n    file (UploadFile): アップロードされたファイル\n    user (User): 現在のユーザー\n    service (DocumentService): ドキュメントサービス\n    s3_client (S3Client): S3クライアント\n\nReturns:\n    DocumentBase: アップロードされたドキュメント情報\n\nRaises:\n    HTTPException: 処理失敗時のエラー",
+        "operationId": "A016",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_A016"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentBase"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "example": {
+                  "detail": "Internal Server Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "invalid_file": {
+                    "value": {
+                      "detail": "Invalid file request"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/documents/{document_id}": {
+      "delete": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "A017:Delete Document",
+        "description": "指定されたドキュメントを削除する\n\nMeilisearchのドキュメント削除に失敗した場合は検索APIやエージェントツールで使用\nされてしまうため以下の順番で削除処理を行い、途中で失敗した場合は後続処理へ進まない\n    1. Meilisearch\n    2. DB\n    3. S3\n\nArgs:\n    document_id: 削除対象のドキュメントのID\n    user: リクエストしたユーザー情報\n    service: ドキュメントサービス\n    s3_client: AWS S3のクライアント\n\nReturns:\n    Response: ステータスコード204で削除が成功したことを示す\n\nRaises:\n    HTTPException:\n        - 403: ユーザーに削除する権限がないとき\n        - 404: 指定されたドキュメントが存在しないとき",
+        "operationId": "A017",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "ドキュメントID",
+              "examples": [
+                "260ea4dd-36a7-401f-b2a1-d6a28d97f140"
+              ],
+              "title": "Document Id"
+            },
+            "description": "ドキュメントID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "example": {
+                  "detail": "Internal Server Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_authorized": {
+                    "value": {
+                      "detail": "Not authorized to delete this document"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_found": {
+                    "value": {
+                      "detail": "Document not found"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/collections": {
+      "post": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "A003:Create Collection",
+        "description": "コレクションを新規作成する",
+        "operationId": "A003",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCollectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "example": {
+                  "detail": "Internal Server Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "A004:Get Collections",
+        "description": "ユーザーに紐づくコレクション一覧を取得する",
+        "operationId": "A004",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetrieveCollectionsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "example": {
+                  "detail": "Internal Server Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "invalid_query": {
+                    "value": {
+                      "detail": "Invalid query parameter value"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/collections/{public_collection_id}": {
+      "get": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "A005:Get Collection Detail",
+        "description": "指定された公開コレクションIDのコレクション情報を取得する",
+        "operationId": "A005",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "public_collection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "公開コレクションID",
+              "examples": [
+                "V1StGXR8_Z5"
+              ],
+              "title": "Public Collection Id"
+            },
+            "description": "公開コレクションID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "example": {
+                  "detail": "Internal Server Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_found": {
+                    "value": {
+                      "detail": "Collection not found"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "A006:Update Collection",
+        "description": "指定された公開コレクションIDのコレクション情報を更新する",
+        "operationId": "A006",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "public_collection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "公開コレクションID",
+              "examples": [
+                "V1StGXR8_Z5"
+              ],
+              "title": "Public Collection Id"
+            },
+            "description": "公開コレクションID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCollectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "example": {
+                  "detail": "Internal Server Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_authorized": {
+                    "value": {
+                      "detail": "Not authorized to update this collection"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_found": {
+                    "value": {
+                      "detail": "Collection not found"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "A007:Delete Collection",
+        "description": "コレクションを削除する（未実装）",
+        "operationId": "A007",
+        "parameters": [
+          {
+            "name": "public_collection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "公開コレクションID",
+              "examples": [
+                "V1StGXR8_Z5"
+              ],
+              "title": "Public Collection Id"
+            },
+            "description": "公開コレクションID"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "example": {
+                  "detail": "Internal Server Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_authorized": {
+                    "value": {
+                      "detail": "Not authorized to delete this collection"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_found": {
+                    "value": {
+                      "detail": "Collection not found"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/collections/{public_collection_id}/conversations": {
+      "get": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "A008:Get Conversations",
+        "description": "コレクションに紐づく会話履歴の一覧を取得する",
+        "operationId": "A008",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "public_collection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "公開コレクションID",
+              "examples": [
+                "V1StGXR8_Z5"
+              ],
+              "title": "Public Collection Id"
+            },
+            "description": "公開コレクションID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConversationBase"
+                  },
+                  "title": "Response A008"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "example": {
+                  "detail": "Internal Server Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_found": {
+                    "value": {
+                      "detail": "Collection not found"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/collections/share": {
+      "post": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "A014:Share Collection",
+        "description": "コレクションを共有する（未実装）",
+        "operationId": "A014",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_A014"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedCollection"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "example": {
+                  "detail": "Internal Server Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "insufficient_permission": {
+                    "value": {
+                      "detail": "Insufficient Permission"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_found": {
+                    "value": {
+                      "detail": "Collection not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/translate": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "A011:Translate",
+        "description": "テキスト翻訳エンドポイント（非推奨）\n\nArgs:\n    body (TranslateTextRequest): 翻訳リクエストボディ\n\nReturns:\n    TranslatedText: 翻訳結果（現在は未実装）\n\nNote:\n    このエンドポイントは非推奨です。",
+        "operationId": "A011",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranslateTextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranslatedText"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "example": {
+                  "detail": "Internal Server Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/ai/chat/start": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "A012:Start Chat",
+        "description": "ユーザのリクエストに応じて初期コレクションを作成する\n\nユーザーのメッセージに基づいて、関連するドキュメントを検索し、\nそれらのドキュメントを含む新しいコレクションを作成します。\n\nArgs:\n    body (ChatRequestBase): リクエストボディ。メッセージデータが含まれる\n    user (User): 認証済みユーザー情報\n    service (AIService): AIサービス\n\nReturns:\n    CollectionDetail: 作成されたコレクションの詳細情報\n\nRaises:\n    HTTPException: 以下の場合にHTTPExceptionが発生します：\n        - 500: コレクション作成に失敗した場合\n        - 500: 内部サーバーエラーが発生した場合",
+        "operationId": "A012",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequestBase"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "example": {
+                  "detail": "Internal Server Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/ai/chat/completions": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "A013:Chat Completions",
+        "description": "ユーザーのリクエストに応じたチャットをストリーミングで返す\n\n指定されたコレクションと会話履歴を基に、AIエージェントが生成した\nレスポンスをServer-Sent Eventsでストリーミング配信します。\n新規の場合は会話を作成し、既存の場合は会話を継続します。\n\nArgs:\n    body (ChatCompletionsRequest): チャットのリクエスト\n    user (User): 認証済みユーザー情報\n    service (AIService): AIサービスインスタンス\n\nReturns:\n    StreamingResponse: 以下の情報をJSONパース可能な文字列としてストリームします：\n        - Message: メッセージオブジェクト\n        - Artifact: アーティファクトオブジェクト\n        - public_conversation_id: 会話ID文字列\n\nRaises:\n    HTTPException: 以下の場合にHTTPExceptionが発生します：\n        - 404: 指定されたコレクションが存在しない場合\n        - 404: 指定された会話履歴が存在しない場合\n        - 403: ユーザーがコレクションへのアクセス権限を持たない場合\n        - 500: チャット処理に失敗した場合\n        - 500: 内部サーバーエラーが発生した場合",
+        "operationId": "A013",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatCompletionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamChat"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamChat"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "example": {
+                  "detail": "Internal Server Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_authorized": {
+                    "value": {
+                      "detail": "Not authorized to use this collection"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_found": {
+                    "value": {
+                      "detail": "Collection not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/conversations/{public_conversation_id}": {
+      "get": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "A009:Get Conversation Detail",
+        "description": "指定された会話履歴の公開IDの詳細を取得します。\n\nArgs:\n    public_conversation_id (str): 会話履歴の公開ID。パスパラメータから取得する。\n    user (User): 認証済みユーザー情報。\n    conversation_service (ConversationService): 会話サービス。\n\nReturns:\n    conversation_detail (CoversationDetail): 会話履歴の詳細情報。\n\nRaises:\n    HTTPException(403): ログインユーザーが会話履歴の所有者でない場合。\n    HTTPException(404): 指定された会話履歴の公開IDが存在しない場合。\n    HTTPException(500): 内部サーバーエラーが発生した場合。",
+        "operationId": "A009",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "public_conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "会話履歴の公開ID",
+              "examples": [
+                "Zf2k6A6R5h2"
+              ],
+              "title": "Public Conversation Id"
+            },
+            "description": "会話履歴の公開ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "example": {
+                  "detail": "Internal Server Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_found": {
+                    "value": {
+                      "detail": "Conversation not found"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "A010:Delete Conversation",
+        "description": "指定された公開会話履歴IDの会話履歴を論理削除する。\n\nArgs:\n    public_conversation_id (str): 削除したい会話履歴の公開ID\n\nReturns:\n    ステータスコード204で空のレスポンス\n\nRaises:\n    HTTPException(403): ログインユーザーが会話履歴の所有者でない場合\n    HTTPException(404): 指定された会話履歴の公開IDが存在しない場合\n\nNote:\n    現在未実装。将来の機能拡張用のプレースホルダー",
+        "operationId": "A010",
+        "parameters": [
+          {
+            "name": "public_conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "会話履歴の公開ID",
+              "examples": [
+                "Zf2k6A6R5h2"
+              ],
+              "title": "Public Conversation Id"
+            },
+            "description": "会話履歴の公開ID"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "example": {
+                  "detail": "Internal Server Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_authorized": {
+                    "value": {
+                      "detail": "Not authorized to delete this conversation"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_found": {
+                    "value": {
+                      "detail": "Conversation not found"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/conversations/share": {
+      "post": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "A015:Share Conversation",
+        "description": "指定された公開会話履歴IDの会話履歴を共有可能な状態にし、共有URLを返す。\n\nArgs:\n    public_conversation_id (str): 共有したい会話履歴の公開ID\n\nReturns:\n    SharedConversation: 共有用のURLや設定情報を含むレスポンス\n\nRaises:\n    HTTPException(403): 権限不足の場合\n    HTTPException(404): 指定された会話履歴が存在しない場合\n\nNote:\n    現在未実装。将来の機能拡張用のプレースホルダー",
+        "operationId": "A015",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_A015"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedConversation"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "example": {
+                  "detail": "Internal Server Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "insufficient_permission": {
+                    "value": {
+                      "detail": "Insufficient Permission"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_found": {
+                    "value": {
+                      "detail": "Conversation not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/artifacts/download": {
+      "post": {
+        "tags": [
+          "artifacts"
+        ],
+        "summary": "A020:Download Artifact",
+        "description": "成果物をダウンロード可能な形式で取得する\n\n指定されたアーティファクトIDとバージョンに基づいて成果物を取得し、\nマークダウン形式のコンテンツをPowerPointプレゼンテーションに変換して\nBase64エンコード形式で返します。\n\nArgs:\n    format (str): 成果物のファイル形式（拡張子）\n    artifact_id (str): 成果物のID\n    version (int): 成果物のバージョン番号\n    artifact_service (ArtifactService): アーティファクトサービス\n\nReturns:\n    EncodedArtifact: Base64エンコードされた成果物データ\n\nRaises:\n    HTTPException: 以下の場合にHTTPExceptionが発生します：\n        - 404: 指定された成果物が存在しない場合\n        - 500: 内部サーバーエラーが発生した場合",
+        "operationId": "A020",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "成果物のファイル形式(拡張子)",
+              "examples": [
+                "pptx"
+              ],
+              "title": "Format"
+            },
+            "description": "成果物のファイル形式(拡張子)"
+          },
+          {
+            "name": "artifact_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "成果物のID",
+              "examples": [
+                "3a92c5d1-6f3b-4b9a-bc2c-9f7d6e4f8e7a"
+              ],
+              "title": "Artifact Id"
+            },
+            "description": "成果物のID"
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "成果物のバージョン",
+              "examples": [
+                1
+              ],
+              "title": "Version"
+            },
+            "description": "成果物のバージョン"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EncodedArtifact"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "internal_error": {
+                    "value": {
+                      "detail": "Internal Server Error"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_found": {
+                    "value": {
+                      "detail": "Artifact not found"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/documents/from-artifact": {
+      "post": {
+        "tags": [
+          "conversion"
+        ],
+        "summary": "A021:add document",
+        "description": "成果物をもとにドキュメントを新規追加する。\n\n指定されたアーティファクトIDとバージョンに基づいて成果物を取得し、\n新しいドキュメントIDを生成してドキュメントとして登録します。\n\n処理フロー:\n1. 成果物情報を取得\n2. 成果物IDを新しいドキュメントIDに変更\n3. S3に成果物を保存\n4. 成果物を新しいドキュメントとして登録（DB + MeilSearch）\n\n\nArgs:\n    request (AddDocumentRequest): 成果物新規追加リクエストデータ\n    user (User): 認証されたユーザー情報\n    conversion_service (ConversionService): ドキュメント操作サービス\n    s3_client (S3Client): S3クライアント\n\nReturns:\n    AddDocumentResponse: 新規追加処理の結果（成功/失敗、ドキュメントID、タイトル等）\n\nRaises:\n    HTTPException: 以下の場合にHTTPExceptionが発生します：\n        - 400: リクエストパラメータが不正な場合\n        - 404: 指定された成果物が存在しない場合\n        - 500: 内部サーバーエラーが発生した場合",
+        "operationId": "A021",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddDocumentRequest",
+                "description": "成果物新規追加リクエストデータ"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddDocumentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "internal_error": {
+                    "value": {
+                      "detail": "Internal Server Error"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "invalid_request": {
+                    "value": {
+                      "detail": "Invalid request parameters"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_found": {
+                    "value": {
+                      "detail": "Artifact not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "conversion"
+        ],
+        "summary": "A022:update document",
+        "description": "成果物をもとにドキュメントを上書き保存する。\n\n指定されたアーティファクトIDとバージョンに基づいて成果物と関連ドキュメントのIDを取得し、\n既存のドキュメントを削除後、新しいドキュメントとして登録します。\n既存ドキュメントがコレクションに含まれている場合、コレクション内の参照も更新されます。\n\n処理フロー:\n1. 成果物情報を取得\n2. document_idで既存ドキュメントを検索\n3. S3に成果物を保存\n4. 成果物を新しいドキュメントとして登録（DB + MeilSearch）\n\n\nArgs:\n    request (UpdateDocumentRequest): 成果物更新リクエストデータ\n    user (User): 認証されたユーザー情報\n    update_service (UpdateService): 更新サービス\n    s3_client (S3Client): S3クライアント\n\nReturns:\n    UpdateDocumentResponse: 更新処理の結果（成功/失敗、ドキュメントID、タイトル等）\n\nRaises:\n    HTTPException: 以下の場合にHTTPExceptionが発生します：\n        - 400: リクエストパラメータが不正な場合\n        - 404: 指定された成果物が存在しない場合\n        - 500: 内部サーバーエラーが発生した場合",
+        "operationId": "A022",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentRequest",
+                "description": "成果物更新リクエストデータ"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateDocumentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "missing_token": {
+                    "summary": "Missing token",
+                    "value": {
+                      "detail": "Authorization header missing"
+                    }
+                  },
+                  "invalid_or_expired_token": {
+                    "summary": "Invalid or expired token",
+                    "value": {
+                      "detail": "Invalid or expired token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "internal_error": {
+                    "value": {
+                      "detail": "Internal Server Error"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "invalid_request": {
+                    "value": {
+                      "detail": "Invalid request parameters"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "description": "Error detail message"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "not_found": {
+                    "value": {
+                      "detail": "Artifact not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AddDocumentRequest": {
+        "properties": {
+          "public_collection_id": {
+            "type": "string",
+            "maxLength": 11,
+            "minLength": 11,
+            "title": "Public Collection Id",
+            "description": "公開コレクションの一意識別子（nanoid形式）",
+            "examples": [
+              "V1StGXR8_Z5"
+            ]
+          },
+          "artifact_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Artifact Id",
+            "description": "成果物の一意識別子（UUID形式）",
+            "examples": [
+              "3a92c5d1-6f3b-4b9a-bc2c-9f7d6e4f8e7a"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version",
+            "description": "成果物のバージョン番号（1以上）",
+            "examples": [
+              1
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "public_collection_id",
+          "artifact_id",
+          "version"
+        ],
+        "title": "AddDocumentRequest",
+        "description": "成果物新規追加のリクエストモデル。\n\nAIによって生成された成果物を新しいドキュメントとして追加するための\nリクエストパラメータです。公開コレクションID、成果物の一意識別子とバージョンを指定します。\n\nAttributes:\n    public_collection_id: 公開コレクションの一意識別子（nanoid形式）\n    artifact_id: 成果物の一意識別子（UUID形式）\n    version: 成果物のバージョン番号（1以上の整数）"
+      },
+      "AddDocumentResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "新規追加処理の成功/失敗フラグ",
+            "examples": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Message",
+            "description": "処理結果の詳細メッセージ",
+            "examples": [
+              "Document added successfully"
+            ]
+          },
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id",
+            "description": "追加後のドキュメントの一意識別子（UUID形式）",
+            "examples": [
+              "260ea4dd-36a7-401f-b2a1-d6a28d97f140"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title",
+            "description": "追加されたドキュメントのタイトル",
+            "examples": [
+              "プレゼンテーション資料"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "document_id",
+          "title"
+        ],
+        "title": "AddDocumentResponse",
+        "description": "成果物新規追加のレスポンスモデル。\n\n成果物のドキュメント新規追加処理の結果を返却します。\n処理の成功/失敗、追加されたドキュメントの情報、処理結果メッセージを含みます。\n\nAttributes:\n    success: 新規追加処理が成功したかどうか\n    message: 処理結果の説明メッセージ\n    document_id: 追加後のドキュメントID（UUID形式）\n    title: 追加されたドキュメントのタイトル"
+      },
+      "Artifact": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "成果物のID",
+            "examples": [
+              "3a92c5d1-6f3b-4b9a-bc2c-9f7d6e4f8e7a"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "成果物のバージョン",
+            "examples": [
+              1
+            ]
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "成果物のタイトル",
+            "examples": [
+              "CANドライバの初期化手順"
+            ]
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "成果物の内容",
+            "examples": [
+              "CANドライバの初期化手順は、通常以下のようなステップで..."
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "title",
+          "content"
+        ],
+        "title": "Artifact"
+      },
+      "ArtifactBase": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "成果物のID",
+            "examples": [
+              "3a92c5d1-6f3b-4b9a-bc2c-9f7d6e4f8e7a"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "成果物のバージョン",
+            "examples": [
+              1
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "version"
+        ],
+        "title": "ArtifactBase"
+      },
+      "Body_A014": {
+        "properties": {
+          "public_collection_id": {
+            "type": "string",
+            "title": "Public Collection Id",
+            "description": "共有したいコレクションのID",
+            "examples": [
+              "V1StGXR8_Z5"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "public_collection_id"
+        ],
+        "title": "Body_A014"
+      },
+      "Body_A015": {
+        "properties": {
+          "public_conversation_id": {
+            "type": "string",
+            "title": "Public Conversation Id",
+            "description": "共有したい会話履歴のID",
+            "examples": [
+              "V1StGXR8_Z5"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "public_conversation_id"
+        ],
+        "title": "Body_A015"
+      },
+      "Body_A016": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File",
+            "description": "ユーザーがアップロードしたファイル"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_A016"
+      },
+      "ChatCompletionsRequest": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "ユーザーの入力したAIへの要求内容",
+            "examples": [
+              "CANドライバの初期化手順はどのように定義されていますか？"
+            ]
+          },
+          "public_collection_id": {
+            "type": "string",
+            "title": "Public Collection Id",
+            "description": "公開コレクションID",
+            "examples": [
+              "V1StGXR8_Z5"
+            ]
+          },
+          "public_conversation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Conversation Id",
+            "description": "会話履歴の公開ID",
+            "examples": [
+              "Zf2k6A6R5h2"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "public_collection_id"
+        ],
+        "title": "ChatCompletionsRequest",
+        "description": "チャット完了のリクエストモデル"
+      },
+      "ChatRequestBase": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "ユーザーの入力したAIへの要求内容",
+            "examples": [
+              "CANドライバの初期化手順はどのように定義されていますか？"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "ChatRequestBase",
+        "description": "チャットリクエストの基底クラス"
+      },
+      "CollectionBase": {
+        "properties": {
+          "public_collection_id": {
+            "type": "string",
+            "title": "Public Collection Id",
+            "description": "公開コレクションID",
+            "examples": [
+              "V1StGXR8_Z5"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "コレクション名",
+            "examples": [
+              "CAN仕様"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "コレクションの作成日時",
+            "examples": [
+              "2023-05-16T14:30:45.123456+09:00"
+            ]
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "コレクションの更新日時",
+            "examples": [
+              "2023-05-16T14:30:45.123456+09:00"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "public_collection_id",
+          "name",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CollectionBase"
+      },
+      "CollectionDetail": {
+        "properties": {
+          "public_collection_id": {
+            "type": "string",
+            "title": "Public Collection Id",
+            "description": "公開コレクションID",
+            "examples": [
+              "V1StGXR8_Z5"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "コレクション名",
+            "examples": [
+              "CAN仕様"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "コレクションの作成日時",
+            "examples": [
+              "2023-05-16T14:30:45.123456+09:00"
+            ]
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "コレクションの更新日時",
+            "examples": [
+              "2023-05-16T14:30:45.123456+09:00"
+            ]
+          },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentBase"
+            },
+            "type": "array",
+            "title": "Documents",
+            "description": "コレクションに含まれるドキュメントのリスト",
+            "examples": [
+              [
+                {
+                  "file_type": "application/pdf",
+                  "genre": "SWS",
+                  "id": "260ea4dd-36a7-401f-b2a1-d6a28d97f140",
+                  "path": "/app/public/documents/R22-11/AUTOSAR_SWS_CANDriver.pdf",
+                  "release": "R22-11",
+                  "subject": "AUTOSAR",
+                  "title": "Specification of CAN Driver"
+                }
+              ]
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "public_collection_id",
+          "name",
+          "created_at",
+          "updated_at",
+          "documents"
+        ],
+        "title": "CollectionDetail"
+      },
+      "Context": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "ドキュメントのタイトル",
+            "examples": [
+              "CAN Driver Specification"
+            ]
+          },
+          "chunk": {
+            "type": "string",
+            "title": "Chunk",
+            "description": "回答に使用された根拠となる情報",
+            "examples": [
+              "...このドキュメントではCAN Driverの仕様を記述..."
+            ]
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "ドキュメントのパス",
+            "examples": [
+              "/app/public/documents/R22-11/AUTOSAR_SWS_CANDriver.pdff"
+            ]
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "`chunk`が含まれるページ番号",
+            "examples": [
+              12
+            ]
+          },
+          "file_type": {
+            "type": "string",
+            "title": "File Type",
+            "description": "ドキュメントのMIMEタイプ",
+            "examples": [
+              "application/pdf"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "chunk",
+          "path",
+          "page",
+          "file_type"
+        ],
+        "title": "Context"
+      },
+      "ConversationBase": {
+        "properties": {
+          "public_conversation_id": {
+            "type": "string",
+            "title": "Public Conversation Id",
+            "description": "会話履歴の公開ID",
+            "examples": [
+              "Zf2k6A6R5h2"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "会話履歴のタイトル",
+            "examples": [
+              "CANドライバについて"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "public_conversation_id",
+          "title"
+        ],
+        "title": "ConversationBase"
+      },
+      "ConversationDetail": {
+        "properties": {
+          "public_conversation_id": {
+            "type": "string",
+            "title": "Public Conversation Id",
+            "description": "会話履歴の公開ID",
+            "examples": [
+              "Zf2k6A6R5h2"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "会話履歴のタイトル",
+            "examples": [
+              "CANドライバについて"
+            ]
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "type": "array",
+            "title": "Messages",
+            "description": "会話履歴の中のメッセージのリスト",
+            "examples": [
+              [
+                {
+                  "content": "CANドライバの初期化手順はどのように定義されていますか？",
+                  "metadata": {},
+                  "role": "user"
+                },
+                {
+                  "content": "CANドライバの初期化手順は、通常以下のようなステップで...",
+                  "metadata": {
+                    "contexts": [
+                      {
+                        "chunk": "...このドキュメントではCAN Driverの仕様を記述...",
+                        "file_type": "application/pdf",
+                        "page": 12,
+                        "path": "/app/public/documents/R22-11/AUTOSAR_SWS_CANDriver.pdf",
+                        "title": "Specification of CAN Driver"
+                      }
+                    ],
+                    "recommended_documents": [
+                      {
+                        "file_type": "application/pdf",
+                        "genre": "SWS",
+                        "id": "260ea4dd-36a7-401f-b2a1-d6a28d97f140",
+                        "path": "/app/public/documents/R22-11/AUTOSAR_SWS_CANDriver.pdf",
+                        "release": "R22-11",
+                        "subject": "AUTOSAR",
+                        "title": "Specification of CAN Driver"
+                      }
+                    ]
+                  },
+                  "role": "assistant"
+                }
+              ]
+            ]
+          },
+          "artifacts": {
+            "items": {
+              "$ref": "#/components/schemas/Artifact"
+            },
+            "type": "array",
+            "title": "Artifacts",
+            "description": "会話履歴に紐づく成果物のリスト"
+          }
+        },
+        "type": "object",
+        "required": [
+          "public_conversation_id",
+          "title",
+          "messages",
+          "artifacts"
+        ],
+        "title": "ConversationDetail"
+      },
+      "CreateCollectionRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "コレクション名",
+            "examples": [
+              "CAN仕様"
+            ]
+          },
+          "document_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Document Ids",
+            "description": "コレクションに含まれるドキュメントIDのリスト",
+            "examples": [
+              [
+                "260ea4dd-36a7-401f-b2a1-d6a28d97f140",
+                "9188eea7-73a2-4045-84b9-c9d685d1184b"
+              ]
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "document_ids"
+        ],
+        "title": "CreateCollectionRequest"
+      },
+      "DocumentBase": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "ドキュメントID",
+            "examples": [
+              "260ea4dd-36a7-401f-b2a1-d6a28d97f140"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "ドキュメントのタイトル",
+            "examples": [
+              "Specification of CAN Driver"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "ドキュメントのパス",
+            "examples": [
+              "/app/public/documents/R22-11/AUTOSAR_SWS_CANDriver.pdf"
+            ]
+          },
+          "subject": {
+            "type": "string",
+            "enum": [
+              "AUTOSAR",
+              "others"
+            ],
+            "title": "Subject",
+            "description": "ドキュメントの種類",
+            "examples": [
+              "AUTOSAR"
+            ]
+          },
+          "genre": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Genre",
+            "description": "AUTOSARドキュメントのワーキンググループ",
+            "examples": [
+              "SWS"
+            ]
+          },
+          "release": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release",
+            "description": "AUTOSARドキュメントのリリースバージョン",
+            "examples": [
+              "R22-11"
+            ]
+          },
+          "file_type": {
+            "type": "string",
+            "title": "File Type",
+            "description": "ドキュメントのMIMEタイプ",
+            "examples": [
+              "application/pdf"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "description": "ドキュメントの要約",
+            "default": "",
+            "examples": [
+              "This document describes the CAN driver specification..."
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "path",
+          "subject",
+          "file_type"
+        ],
+        "title": "DocumentBase",
+        "description": "ドキュメントの基本情報"
+      },
+      "EncodedArtifact": {
+        "properties": {
+          "format": {
+            "type": "string",
+            "title": "Format",
+            "description": "ファイル形式",
+            "examples": [
+              "pptx"
+            ]
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "Base64エンコードされたファイル内容"
+          }
+        },
+        "type": "object",
+        "required": [
+          "format",
+          "content"
+        ],
+        "title": "EncodedArtifact",
+        "description": "Base64エンコードされた成果物のレスポンスモデル"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Message": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role",
+            "description": "メッセージのロール(user/assistant)",
+            "examples": [
+              "assistant"
+            ]
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "メッセージの内容",
+            "examples": [
+              "CANドライバの初期化手順は、通常以下のようなステップで..."
+            ]
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MessageMetadata",
+            "description": "メッセージに紐づくメタデータ"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "content",
+          "metadata"
+        ],
+        "title": "Message"
+      },
+      "MessageMetadata": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "メタデータのバージョン",
+            "default": "v1"
+          },
+          "contexts": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Context"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contexts",
+            "description": "回答に使用したコンテキスト"
+          },
+          "recommended_documents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DocumentBase"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Documents",
+            "description": "レコメンドしたドキュメントの情報",
+            "examples": [
+              [
+                {
+                  "file_type": "application/pdf",
+                  "genre": "SWS",
+                  "id": "260ea4dd-36a7-401f-b2a1-d6a28d97f140",
+                  "path": "/app/public/documents/R22-11/AUTOSAR_SWS_CANDriver.pdf",
+                  "release": "R22-11",
+                  "subject": "AUTOSAR",
+                  "title": "Specification of CAN Driver"
+                }
+              ]
+            ]
+          },
+          "generated_artifacts": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ArtifactBase"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated Artifacts",
+            "description": "このメッセージと一緒に生成された成果物のIDとバージョン",
+            "examples": [
+              [
+                {
+                  "id": "123e4567-e78b-3fea-15j6d93o931",
+                  "version": 1
+                }
+              ]
+            ]
+          }
+        },
+        "type": "object",
+        "title": "MessageMetadata"
+      },
+      "RetrieveCollectionsResponse": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "ユーザーIDが一致しているレコードの件数",
+            "examples": [
+              2
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "description": "データの取得開始位置",
+            "examples": [
+              0
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit",
+            "description": "一度に取得するデータの最大数",
+            "examples": [
+              10
+            ]
+          },
+          "collections": {
+            "items": {
+              "$ref": "#/components/schemas/CollectionBase"
+            },
+            "type": "array",
+            "title": "Collections",
+            "description": "公開コレクションIDとコレクション名のリスト",
+            "examples": [
+              [
+                {
+                  "created_at": "2023-05-16T14:30:45.123456+09:00",
+                  "name": "CAN仕様",
+                  "public_collection_id": "V1StGXR8_Z5",
+                  "updated_at": "2023-05-16T14:30:45.123456+09:00"
+                }
+              ]
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "offset",
+          "limit",
+          "collections"
+        ],
+        "title": "RetrieveCollectionsResponse"
+      },
+      "SearchDocumentsResponse": {
+        "properties": {
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages",
+            "description": "検索結果のページ総数",
+            "examples": [
+              3
+            ]
+          },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentBase"
+            },
+            "type": "array",
+            "title": "Documents",
+            "description": "検索結果のリスト",
+            "examples": [
+              [
+                {
+                  "file_type": "application/pdf",
+                  "genre": "SWS",
+                  "id": "260ea4dd-36a7-401f-b2a1-d6a28d97f140",
+                  "path": "/app/public/documents/R22-11/AUTOSAR_SWS_CANDriver.pdf",
+                  "release": "R22-11",
+                  "subject": "AUTOSAR",
+                  "title": "Specification of CAN Driver"
+                }
+              ]
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_pages",
+          "documents"
+        ],
+        "title": "SearchDocumentsResponse",
+        "description": "ドキュメント検索レスポンス"
+      },
+      "SharedCollection": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "発行されたコレクション共有用URL",
+            "examples": [
+              "http://qines-gai/share/collections/V1StGXR8_Z5"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "SharedCollection"
+      },
+      "SharedConversation": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "発行された会話履歴共有用URL",
+            "examples": [
+              "http://qines-gai/share/conversations/V1StGXR8_Z5"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "SharedConversation"
+      },
+      "StreamChat": {
+        "properties": {
+          "public_conversation_id": {
+            "type": "string",
+            "title": "Public Conversation Id",
+            "description": "会話履歴の公開ID",
+            "examples": [
+              "Zf2k6A6R5h2"
+            ]
+          },
+          "message": {
+            "$ref": "#/components/schemas/Message",
+            "description": "AIの返答内容"
+          },
+          "artifact": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Artifact"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "チャットに紐づく成果物"
+          }
+        },
+        "type": "object",
+        "required": [
+          "public_conversation_id",
+          "message"
+        ],
+        "title": "StreamChat",
+        "description": "チャット完了時のストリーミングレスポンスモデル"
+      },
+      "TranslateTextRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "日本語に翻訳したいテキスト",
+            "examples": [
+              "The initialization procedure for the CAN driver usually consists of the following steps..."
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "TranslateTextRequest",
+        "description": "テキスト翻訳のリクエストモデル"
+      },
+      "TranslatedText": {
+        "properties": {
+          "result": {
+            "type": "string",
+            "title": "Result",
+            "description": "翻訳結果（日本語）",
+            "examples": [
+              "CANドライバの初期化手順は、通常以下のようなステップで..."
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "result"
+        ],
+        "title": "TranslatedText",
+        "description": "翻訳結果のレスポンスモデル"
+      },
+      "UpdateDocumentRequest": {
+        "properties": {
+          "public_collection_id": {
+            "type": "string",
+            "maxLength": 11,
+            "minLength": 11,
+            "title": "Public Collection Id",
+            "description": "公開コレクションの一意識別子（nanoid形式）",
+            "examples": [
+              "V1StGXR8_Z5"
+            ]
+          },
+          "artifact_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Artifact Id",
+            "description": "成果物の一意識別子（UUID形式）",
+            "examples": [
+              "3a92c5d1-6f3b-4b9a-bc2c-9f7d6e4f8e7a"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version",
+            "description": "成果物のバージョン番号（1以上）",
+            "examples": [
+              1
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "public_collection_id",
+          "artifact_id",
+          "version"
+        ],
+        "title": "UpdateDocumentRequest",
+        "description": "成果物更新のリクエストモデル。\n\nAIによって生成された成果物をドキュメントとして更新・登録するための\nリクエストパラメータです。公開コレクションID、成果物の一意識別子とバージョンを指定します。\n\nAttributes:\n    public_collection_id: 公開コレクションの一意識別子（nanoid形式）\n    artifact_id: 成果物の一意識別子（UUID形式）\n    version: 成果物のバージョン番号（1以上の整数）"
+      },
+      "UpdateDocumentResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "更新処理の成功/失敗フラグ",
+            "examples": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Message",
+            "description": "処理結果の詳細メッセージ",
+            "examples": [
+              "Document updated successfully"
+            ]
+          },
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id",
+            "description": "更新後のドキュメントの一意識別子（UUID形式）",
+            "examples": [
+              "260ea4dd-36a7-401f-b2a1-d6a28d97f140"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title",
+            "description": "更新されたドキュメントのタイトル",
+            "examples": [
+              "プレゼンテーション資料"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "document_id",
+          "title"
+        ],
+        "title": "UpdateDocumentResponse",
+        "description": "成果物更新のレスポンスモデル。\n\n成果物のドキュメント更新処理の結果を返却します。\n処理の成功/失敗、更新されたドキュメントの情報、処理結果メッセージを含みます。\n\nAttributes:\n    success: 更新処理が成功したかどうか\n    message: 処理結果の説明メッセージ\n    document_id: 更新後のドキュメントID（UUID形式）\n    title: 更新されたドキュメントのタイトル"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

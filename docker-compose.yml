@@ -1,0 +1,101 @@
+name: qines-gai
+services:
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    volumes:
+      - ./meili_data:/meili_data
+    command: sh -c "meilisearch --http-addr 0.0.0.0:7700 --no-analytics"
+    ports:
+      - 77${USER_ID:-00}:7700
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - ./documents:/app/public/documents
+      - ./backend/pptx_template:/app/pptx_template
+      - ./backend/src:/app/src
+      - ./backend/tests:/app/tests
+      - ./backend/.coveragerc:/app/.coveragerc
+      - ./conf/.env.backend:/app/.env
+    command: sh -c "poetry run python3 src/qines_gai_backend/main.py"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - POSTGRES_URI=postgresql+asyncpg://qinesgai:qinesgai@db:5432/qinesgai
+      - MEILISEARCH_HOST=http://meilisearch:7700
+      - S3_BUCKET_NAME=qines-gai-local
+      - S3_ENDPOINT_URL=http://seaweedfs:8333
+    ports:
+      - 80${USER_ID:-00}:8000
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+
+  frontend:
+    build:
+      context: ./frontend # submoduleを利用する場合
+      # context: ../qines-gai-frontend # 同階層にあるフロントエンドリポジトリを利用する場合
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend/openapi.json:/app/openapi.json
+      - ./documents:/app/public/app/public/documents
+      - ./frontend:/app # submoduleを利用する場合
+      # - ../qines-gai-frontend:/app # 同階層にあるフロントエンドリポジトリを利用する場合
+      - ./conf/.env.frontend:/app/.env
+    working_dir: /app
+    ports:
+      - 30${USER_ID:-00}:3000
+    environment:
+      - NEXT_PUBLIC_MOCK_HOST=mockserver
+      - NEXT_PUBLIC_HOST=backend
+      - NEXT_PUBLIC_DOCUMENT_ORIGIN=http://seaweedfs:8333
+
+  mockserver:
+    image: stoplight/prism:4
+    volumes:
+      - ./backend/openapi.json:/tmp/openapi.json # submoduleを利用する場合
+      # - ./backend/openapi.json:/tmp/openapi.json # 同階層にあるフロントエンドリポジトリを利用する場合
+    ports:
+      - "40${USER_ID:-10}:4010"
+    command: mock -h 0.0.0.0 /tmp/openapi.json
+
+  db:
+    image: postgres:17
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "54${USER_ID:-32}:5432"
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:3.79
+    ports:
+      - "90${USER_ID:-00}:8333"
+    command: server -s3 -dir=/data -s3.config=/etc/seaweedfs/s3.json
+    volumes:
+      - seaweedfs_data:/data
+      - ./conf/seaweedfs-s3.json:/etc/seaweedfs/s3.json
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin123
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: kcpass
+    ports:
+      - "88${USER_ID:-00}:8080"
+    depends_on:
+      - db
+    command: start-dev
+
+volumes:
+  postgres_data:
+  seaweedfs_data:

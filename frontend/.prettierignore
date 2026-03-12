@@ -1,0 +1,11 @@
+build
+coverage
+package-lock.json
+
+.env*
+
+# Next.js
+/.next/
+/out/
+
+/build

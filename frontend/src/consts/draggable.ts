@@ -1,0 +1,5 @@
+export const DRAG_ITEM_TYPES = {
+  SEARCHED_DOCUMENT: "SEARCHED_DOCUMENT",
+  COLLECTION_DOCUMENT: "COLLECTION_DOCUMENT",
+} as const;
+export type ItemOfDragItemType = (typeof DRAG_ITEM_TYPES)[keyof typeof DRAG_ITEM_TYPES];

@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* スクロールバーを非表示にするクラス */
+@layer utilities {
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none; /* Webkitブラウザでのスクロールバーを非表示 */
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none; /* IEとEdgeでのスクロールバーを非表示 */
+    scrollbar-width: none; /* Firefoxでのスクロールバーを非表示 */
+  }
+}

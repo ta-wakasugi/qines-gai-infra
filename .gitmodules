@@ -1,0 +1,6 @@
+[submodule "backend"]
+	path = backend
+	url = https://git-codecommit.ap-northeast-1.amazonaws.com/v1/repos/qines-gai-backend
+[submodule "frontend"]
+	path = frontend
+	url = https://git-codecommit.ap-northeast-1.amazonaws.com/v1/repos/qines-gai-frontend

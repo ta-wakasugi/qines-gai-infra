@@ -1,0 +1,7 @@
+__mock__
+.husky
+.swc
+.vscode
+.next
+coverage
+node_modules

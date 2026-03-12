@@ -1,0 +1,54 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`BaseDocumentCard snapshot 1`] = `
+<DocumentFragment>
+  <div
+    class="flex flex-col items-start gap-1 rounded-2xl "
+  >
+    <div
+      class="flex flex-col items-start shadow-[0px_2px_12px_#aaaaaa1f] bg-[#ffffffcc] w-full self-stretch px-3 py-2 rounded-2xl"
+    >
+      <div
+        class="w-full flex self-stretch flex-[0_0_auto] flex-col items-end gap-1"
+      >
+        <div
+          class="flex w-full self-stretch items-center h-7 justify-between"
+        >
+          <div
+            class="flex items-center w-3/4 flex-grow"
+          >
+            <div>
+              DocumentIcon
+            </div>
+            <div
+              class="ml-2 text-ellipsis overflow-hidden whitespace-nowrap grow"
+              title="mockTitle"
+            >
+              mockTitle
+            </div>
+          </div>
+          <div
+            class="ml-1 mt-2 flex"
+          >
+            CloseIconOpenDocumentIcon
+          </div>
+        </div>
+        <div
+          class="flex w-full items-center justify-between"
+        >
+          <div
+            class="flex items-center flex-grow min-h-[2.875rem]"
+          >
+            <div
+              class="grow"
+            >
+              CardCategoryArea
+            </div>
+          </div>
+        </div>
+      </div>
+      AddDocumentIcon
+    </div>
+  </div>
+</DocumentFragment>
+`;
