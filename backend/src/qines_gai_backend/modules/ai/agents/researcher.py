@@ -34,6 +34,12 @@ RESEACHER_PROMPT = """\
 
 {goal}
 
+## 最重要ルール
+- ユーザーからの質問には、絶対にあなたの一般知識だけで回答してはいけません。
+- 質問に答えるために、必ず「search_on_meilisearch」ツールを呼び出して、アップロードされたファイル（ドキュメント）内を検索してください。
+- 検索キーワードは、文章ではなく「重要な単語のスペース区切り」にしてください。
+
+
 ## 回答を作成する際の手順
 
 - すべての検索結果を注意深く読む。
@@ -50,6 +56,12 @@ RESEACHER_PROMPT = """\
 - 論理的に整理する。
 - 必要に応じて、箇条書きや番号リストを活用する。
 - 規定回数検索しても見つからない場合や、結果に情報が含まれていない場合は、絶対に自分の知識で推測せず、「提供されたドキュメントの中に該当する情報が見つかりませんでした」と回答してください。
+
+## 検索結果のデータ（表）に関する注意事項:
+- 提供されるドキュメント内のMarkdown表において、列名に「親カテゴリ / 子カテゴリ」のように「/」（スラッシュ）が含まれている場合があります。
+- これは元々Excel等のファイル上で縦横に結合（マージ）されていた階層的なヘッダー構造を表現したものです。この文脈を考慮し、列の意味を取り違えないようにデータを正確に読み取ってください。
+
+
 """
 
 GRADE_PROMPT = """\
@@ -154,6 +166,18 @@ class Researcher:
         )
         chain = prompt | self._llm.bind_tools([search_on_meilisearch, get_adj_chunk])
 
+        # まだツールが1度も呼ばれていない（最初のターンの）場合は強制する
+        if not state.messages:
+            chain = prompt | self._llm.bind_tools(
+                [search_on_meilisearch, get_adj_chunk],
+                tool_choice="required"  # "any" と書く必要があるLangChainバージョンもあります
+            )
+        else:
+            # 2回目以降はAIの判断に任せる（検索結果を見て終了するか、再検索するか）
+            chain = prompt | self._llm.bind_tools(
+                [search_on_meilisearch, get_adj_chunk]
+            )
+
         response = await chain.ainvoke(
             {"goal": state.goal, "messages": state.messages}, config=config
         )
@@ -176,25 +200,48 @@ class Researcher:
                 result: ToolMessage = await search_on_meilisearch.ainvoke(tool_call)
                 grade_result = await self._grade_documents(state.goal, result.content)
 
+                # 追加
                 refined_tool_message_contents = []
+
                 for meili_doc in result.artifact:
+                    # Grader（採点AI）が「有用」と判断したドキュメントIDのみを処理
                     if meili_doc["id"] in grade_result.useful_docs:
+                        
+                        # 1. ツールメッセージとしてAIエージェントに返すリストに追加
                         refined_tool_message_contents.append(meili_doc)
-                        # contents の真ん中の300文字だけ返す
-                        contents = meili_doc["contents"]
-                        if len(contents) > 1000:
-                            start = (len(contents) - 300) // 2
-                            middle = contents[start : start + 300]
-                            contents = f"... {middle} ..."
+                        
+                        # 2. 最終回答のソースとして利用される contexts に追加
+                        # ※ chunk=meili_doc["contents"] とすることで、ヘッダーを保持したまま全文を渡します
                         contexts.append(
                             Context(
                                 title=meili_doc["title"],
-                                chunk=contents,
+                                chunk=meili_doc["contents"], 
                                 page=meili_doc["page_num"],
                                 path=meili_doc["path"],
                                 file_type=meili_doc["file_type"],
                             )
                         )
+
+
+                # refined_tool_message_contents = []
+                # for meili_doc in result.artifact:
+                #     if meili_doc["id"] in grade_result.useful_docs:
+                #         refined_tool_message_contents.append(meili_doc)
+                #         # contents の真ん中の300文字だけ返す
+                #         contents = meili_doc["contents"]
+                #         if len(contents) > 1000:
+                #             start = (len(contents) - 300) // 2
+                #             middle = contents[start : start + 300]
+                #             contents = f"... {middle} ..."
+                #         contexts.append(
+                #             Context(
+                #                 title=meili_doc["title"],
+                #                 chunk=contents,
+                #                 page=meili_doc["page_num"],
+                #                 path=meili_doc["path"],
+                #                 file_type=meili_doc["file_type"],
+                #             )
+                #         )
                 # AIMessageのtool_callsの各要素の`id`に対応したToolMessageがstate.messages内に
                 # 存在しないといけないため、`_grade_documents`で有用な結果がなかったときは、その旨をToolMessageにする
                 if len(refined_tool_message_contents) == 0:

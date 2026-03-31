@@ -22,5 +22,5 @@ ENV PATH=$PATH:/root/.local/bin
 WORKDIR /app
 COPY . /app
 RUN poetry config virtualenvs.create false && poetry install
-RUN poetry add "markitdown[xlsx,docx]"
+RUN poetry add "markitdown[xlsx,docx]" tabulate
 

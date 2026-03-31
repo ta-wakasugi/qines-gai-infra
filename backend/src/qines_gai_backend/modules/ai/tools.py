@@ -84,7 +84,7 @@ async def search_on_meilisearch(
     # クエリの再生成を行う方針。そのため、offset/limitは固定
     meili_client = await get_meili_client(get_connection_manager())
     index = meili_client.index("qines-gai")
-    response = await index.search(query, limit=30, offset=0, filter=filter)
+    response = await index.search(query, limit=5, offset=0, filter=filter)
 
     # ==========================================
     # 【追加】Meilisearchの検索結果（生データ）をログに出力する
