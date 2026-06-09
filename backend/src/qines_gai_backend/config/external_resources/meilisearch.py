@@ -51,7 +51,7 @@ class MeilisearchConnection(ExternalResource[AsyncClient]):
             except MeilisearchError as e:
                 self._client = None  # 接続失敗時はclientをNoneに戻す
                 raise RuntimeError(f"Meilisearchへの接続に失敗しました: {e}") from e
-
+            
     async def disconnect(self):
         """Meilisearchとの接続を切断します。
 
@@ -86,10 +86,17 @@ class MeilisearchConnection(ExternalResource[AsyncClient]):
 
         try:
             # インデックスが既に存在するかチェック
-            await self._client.get_index(index_uid)
+            index = await self._client.get_index(index_uid)
+            
         except MeilisearchError:
             # インデックスが存在しない場合、新規作成
             await self._create_index(index_uid)
+            return
+        
+        # ★カスタマイズ開発での追加
+        # インデックスが既に存在する場合も、filterable_attributesを最新化する
+        await self._ensure_index_settings(index)
+        
 
     async def _create_index(self, index_uid: str) -> TaskResult:
         """新しいインデックスを作成し、必要な設定を適用します。
@@ -104,20 +111,35 @@ class MeilisearchConnection(ExternalResource[AsyncClient]):
             raise RuntimeError("Meilisearchクライアントが初期化されていません。")
 
         index = await self._client.create_index(index_uid, "id")
-        if index:
-            settings = await index.get_settings()
-            settings.filterable_attributes = [
-                "page_num",
-                "chunk_num",
-                "release",
-                "genre",
-                "doc_id",
-                "uploader",
-                "file_path",
-            ]
-                
-            task = await index.update_settings(settings)
-            result = await self._client.wait_for_task(task.task_uid)
-            return result
 
+        if index:
+            return await self._ensure_index_settings(index)
+        
         raise RuntimeError(f"インデックス '{index_uid}' の作成に失敗しました。")
+    
+    async def _ensure_index_settings(self, index) -> TaskResult:
+        """既存インデックスに必要な設定を適用します。"""
+        if not self._client:
+            raise RuntimeError("Meilisearchクライアントが初期化されていません。")
+
+        settings = await index.get_settings()
+
+        settings.filterable_attributes = [
+            "page_num",
+            "chunk_num",
+            "release",
+            "genre",
+            "doc_id",
+            "uploader",
+            "file_path",
+            "document_role",  # ★カスタマイズ開発での追加
+        ]
+
+        task = await index.update_settings(settings)
+
+        result = await self._client.wait_for_task(
+            task.task_uid,
+            raise_for_status=True,
+        )
+
+        return result

@@ -47,6 +47,7 @@ class DocumentRepository:
         release: Optional[str] = None,
         is_shared: bool = False,
         file_type: Optional[str] = None,
+        document_role: str = "normal", #★カスタマイズ開発での追加
     ) -> T_Document:
         """新しいドキュメントをデータベースに作成する。
 
@@ -62,6 +63,8 @@ class DocumentRepository:
             release (Optional[str], optional): リリース情報。デフォルトはNone
             is_shared (bool, optional): 共有フラグ。デフォルトはFalse
             file_type (Optional[str], optional): MIMEタイプ。指定しない場合はファイル名から推測
+            document_role: ドキュメントの種類。デフォルトはnormal。review_ruleはレビューするノウハウ, review_inputはレビュー対象のデータ
+            
 
         Returns:
             T_Document: 作成されたドキュメントのデータベースレコード
@@ -116,7 +119,7 @@ class DocumentRepository:
                 )
 
             except Exception as e:
-                logger.warning(f"Failed to generate content summary: {str(e)}")
+                logger.exception(f"Failed to generate content summary: {str(e)}")
                 content_summary = "要約の生成に失敗しました"
 
             # file_typeが明示的に渡された場合はそれを使用、なければファイル名から推測
@@ -136,6 +139,7 @@ class DocumentRepository:
                 is_shared=is_shared,
                 summary=content_summary,
                 metadata_info=metadata_info,
+                document_role=document_role, #★カスタマイズ開発での追加
             )
             self.session.add(document)
             await self.session.flush()

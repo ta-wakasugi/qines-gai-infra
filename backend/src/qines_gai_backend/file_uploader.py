@@ -21,6 +21,7 @@ from typing_extensions import Any
 from qines_gai_backend.logger_config import get_logger
 from qines_gai_backend.modules.documents.models import MeilisearchChunk
 from qines_gai_backend.schemas.schema import T_Document
+from langchain_text_splitters import MarkdownHeaderTextSplitter
 
 logger = get_logger(__file__)
 
@@ -209,6 +210,7 @@ class AutosarPdfProcessor:
                         "subject": pdf_metadata["subject"],
                         "genre": pdf_metadata["genre"],
                         "release": pdf_metadata["release"],
+                        "category": pdf_metadata.get("category"), #★ カスタマイズ開発での追加
                     },
                 )
                 session.add(pdf_record)
@@ -233,6 +235,94 @@ class AutosarPdfProcessor:
         except Exception as e:
             logger.error(f"Failed to delete documents from Meilisearch: {str(e)}")
         logger.info("Done!")
+
+    async def process_md(self, md_path: Path) -> bool:
+        # ★ベテランアップロード用メソッド
+        s3_key = None
+        try:
+            # 1. S3へのアップロード
+            s3_key = await self._upload_to_s3(md_path)
+            if not s3_key:
+                raise Exception("S3 upload failed")
+
+            self._pending_task[s3_key] = []
+            
+            # 2. ファイル読み込みとメタデータ構築
+            with open(md_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            title = md_path.stem.replace("_", " ")
+            md_metadata_path = f"/{self._s3_bucket}/{s3_key}"
+            
+            md_metadata = {
+                "doc_id": str(uuid4()),
+                "title": title,
+                "subject": "KNOWHOW",    # AUTOSARとは区別
+                "release": "latest",     # 任意
+                "genre": "REVIEW_RULE",  # 任意
+                "path": md_metadata_path,
+                "uploader": "admin",
+                "file_type": "text/markdown",
+                "category": "knowhow",   # ★重要：ノウハウとしてカテゴリ分け
+            }
+            
+            # 3. Markdownの見出し単位でチャンク分割
+            # ベテランノウハウは「ルール単位」で分かれているとエージェントが扱いやすいため、
+            # H1, H2 などの見出しで分割する Splitter を使用します。
+            headers_to_split_on = [
+                ("#", "Header 1"),
+                ("##", "Header 2"),
+                ("###", "Header 3"),
+            ]
+            markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
+            md_chunks = markdown_splitter.split_text(content)
+
+            current_batch = []
+            batch_number = 1
+            chunk_num = 1
+            total_batches = 1 
+            
+            # 4. Meilisearchへの登録用データ構築
+            for chunk in md_chunks:
+                # チャンクごとに付与された見出し情報を抽出
+                rule_name = chunk.metadata.get("Header 2", title) # 例: H2をルール名とする
+
+                page_data = {
+                    **md_metadata,
+                    "total_pages": 1,
+                    "page_num": 1,
+                    "chunk_num": chunk_num,
+                    "contents": chunk.page_content,
+                    "rule_name": rule_name, # ノウハウ名として検索に使えるようにする
+                    "id": str(uuid4()),
+                }
+                current_batch.append(page_data)
+                chunk_num += 1
+
+            if current_batch:
+                task = await self._upload_to_meilisearch(
+                    current_batch, s3_key, batch_number, total_batches
+                )
+                if task:
+                    self._pending_task[s3_key].append(task)
+
+            # Meilisearchアップロード待機
+            if not await self._wait_for_all_tasks(s3_key):
+                raise Exception("Meilisearch upload failed")
+
+            # 5. DBへの保存（既存メソッドを流用。T_Documentのmetadata_infoにcategoryを追加）
+            md_metadata["category"] = "knowhow" # JSONに格納用
+            db_success = await self._save_to_db(md_path, md_metadata)
+            if not db_success:
+                raise Exception("DB save failed")
+
+            return True
+
+        except Exception as e:
+            logger.error(f"MD Processing failed for {md_path.name}: {str(e)}")
+            if s3_key:
+                await self._cleanup_failed_processing(s3_key)
+            return False
 
     async def process_pdf(self, pdf_path: Path) -> bool:
         s3_key = None
@@ -289,6 +379,7 @@ class AutosarPdfProcessor:
                     "path": pdf_metadata_path,
                     "uploader": "admin",
                     "file_type": mimetypes.guess_type(pdf_path.name)[0],
+                    "category": "autosar", # ★　カスタマイズ開発での追加
                 }
 
                 # 各ページのテキストをDocumentとして作成（ページ番号をmetadataに保持）
@@ -358,18 +449,28 @@ class AutosarPdfProcessor:
                 await self._cleanup_failed_processing(s3_key)
             return False
 
-    async def process_all_pdfs(self):
+    async def process_all_files(self):
+        # ★カスタマイズ開発変更
         pdf_files = list(self._pdf_dir.glob("*.pdf"))
+        md_files = list(self._pdf_dir.glob("*.md"))
+        all_files = pdf_files + md_files
 
-        with tqdm(total=len(pdf_files), desc="Processing PDFs") as pbar:
+        with tqdm(total=len(pdf_files), desc="Processing Files") as pbar:
 
-            async def process_with_semaphore(pdf_path):
+            async def process_with_semaphore(file_path: Path):
                 async with self._semaphore:
-                    success = await self.process_pdf(pdf_path)
+                    
+                    if file_path.suffix.lower() == ".pdf":
+                        success = await self.process_pdf(file_path)
+                    elif file_path.suffix.lower() == ".md":
+                        success = await self.process_md(file_path)
+                    else:
+                        success = False
+                        
                     pbar.update(1)
-                    pbar.set_postfix({"status": "success" if success else "failed"})
+                    
 
-            tasks = [process_with_semaphore(pdf_path) for pdf_path in pdf_files]
+            tasks = [process_with_semaphore(f) for f in all_files]
             await asyncio.gather(*tasks)
 
 
@@ -384,6 +485,8 @@ async def create_index(meili_client: AsyncClient, index_uid: str) -> TaskResult:
             "genre",
             "doc_id",
             "uploader",
+            # ★カスタマイズ開発追加
+            "category"
         ]
         task = await index.update_settings(settings)
         result = await meili_client.wait_for_task(task.task_uid)
@@ -416,7 +519,7 @@ async def main(
     processor = AutosarPdfProcessor(
         target_dir, s3_bucket, concurrency, batch_size
     )
-    await processor.process_all_pdfs()
+    await processor.process_allfiless()
 
 
 if __name__ == "__main__":

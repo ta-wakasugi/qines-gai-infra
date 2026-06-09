@@ -2,6 +2,7 @@ from fastapi import (
     APIRouter,
     Depends,
     File,
+    Form,
     HTTPException,
     Path,
     Query,
@@ -165,6 +166,23 @@ async def search_document(
 @log_function_start_end
 async def upload_file(
     file: UploadFile = File(..., description="ユーザーがアップロードしたファイル"),
+    # ★カスタマイズ開発で追加: アップロード時メタデータ
+    subject: Literal["AUTOSAR", "others"] = Form(
+        default="others",
+        description="ドキュメントの種類",
+    ),
+    genre: str | None = Form(
+        default=None,
+        description="AUTOSARドキュメントのワーキンググループ",
+    ),
+    release: str | None = Form(
+        default=None,
+        description="AUTOSARドキュメントのリリースバージョン",
+    ),
+    document_role: Literal["normal", "review_rule", "review_input"] = Form(
+        default="normal",
+        description="レビュー機能上のドキュメントの役割",
+    ),
     user: User = Depends(get_current_user),
     service: DocumentService = Depends(get_document_service),
     s3_client: S3Client = Depends(get_s3_client),
@@ -184,7 +202,12 @@ async def upload_file(
         HTTPException: 処理失敗時のエラー
     """
     try:
-        request = UploadDocumentRequest()  # デフォルトで"others"
+        request = UploadDocumentRequest(
+            subject=subject,
+            genre=genre,
+            release=release,
+            document_role=document_role,
+            )  # デフォルトで"others"
 
         return await service.upload_document(file, user.user_id, request, s3_client)
 
@@ -292,3 +315,30 @@ async def delete_document(
     except BaseAppError as e:
         logger.error(f"Document deletion failed: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
+    
+    
+# ★カスタマイズ開発での追加(デバッグ用にAPI追加)
+@router.post("/api/documents/upload-debug", tags=["documents"])
+@log_function_start_end
+async def upload_file_debug(
+    file: UploadFile = File(..., description="ユーザーがアップロードしたファイル"),
+    subject: Literal["AUTOSAR", "others"] = Form(default="others"),
+    genre: str | None = Form(default=None),
+    release: str | None = Form(default=None),
+    document_role: Literal["normal", "review_rule", "review_input"] = Form(default="normal"),
+    service: DocumentService = Depends(get_document_service),
+    s3_client: S3Client = Depends(get_s3_client),
+):
+    request = UploadDocumentRequest(
+        subject=subject,
+        genre=genre,
+        release=release,
+        document_role=document_role,
+    )
+
+    return await service.upload_document(
+        file=file,
+        user_id="debug-user",
+        request=request,
+        s3_client=s3_client,
+    )

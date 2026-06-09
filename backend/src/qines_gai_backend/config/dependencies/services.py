@@ -15,6 +15,11 @@ from qines_gai_backend.modules.conversion.services import ConversionService
 from qines_gai_backend.modules.documents.repositories import DocumentRepository
 from qines_gai_backend.modules.documents.services import DocumentService
 
+# ★カスタマイズ開発での追加
+from qines_gai_backend.config.dependencies.repositories import get_review_repository
+from qines_gai_backend.modules.reviews.repositories import ReviewRepository
+from qines_gai_backend.modules.reviews.services import ReviewService
+
 from .repositories import (
     get_ai_repository,
     get_artifact_repository,
@@ -69,3 +74,10 @@ async def get_conversion_service(
     artifact_repo: ArtifactRepository = Depends(get_artifact_repository),
 ) -> ConversionService:
     return ConversionService(repository, document_repo, artifact_repo)
+
+# ★カスタマイズ開発での追加
+@log_function_start_end
+async def get_review_service(
+    repository: ReviewRepository = Depends(get_review_repository),
+) -> ReviewService:
+    return ReviewService(repository)

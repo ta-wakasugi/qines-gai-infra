@@ -12,6 +12,7 @@ import { DISPLAY_PATH } from "@/consts/paths";
 import { useError } from "@/hooks/useError";
 import { CollectionBaseType } from "@/models/collection";
 import { useEffect, useState } from "react";
+import VeteranKnowhowReview from "@/components/reviews/VeteranKnowhowReview";
 
 export default function Home() {
   const MAX_DISPLAY_CARD_COUNT = 3;
@@ -97,6 +98,12 @@ export default function Home() {
                 一覧を見る
               </a>
             </div>
+          </div>
+        </div>
+        {/* ベテランノウハウレビュー */}
+        <div className="pt-24 pb-20 flex justify-center items-center text-center">
+          <div className="relative w-1/2">
+            <VeteranKnowhowReview />
           </div>
         </div>
       </div>

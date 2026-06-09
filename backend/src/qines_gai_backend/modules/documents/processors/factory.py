@@ -27,8 +27,7 @@ def get_processor(file_extension: str) -> DocumentProcessor:
     # ファイルタイプごとのマッピング
     processor_mapping = {
         ".pdf": PDFProcessor(),
-        ".xlsx": ExcelProcessor(),
-        ".xlsm": ExcelProcessor(),
+        ".xlsx": ExcelProcessor()
     }
 
     # マッピングに存在すればそれを返し、なければデフォルトのMarkItDown

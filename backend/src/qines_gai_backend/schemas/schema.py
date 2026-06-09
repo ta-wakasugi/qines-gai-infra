@@ -1,5 +1,5 @@
 import uuid
-
+from datetime import datetime
 from nanoid import generate
 from sqlalchemy import (
     JSON,
@@ -65,6 +65,7 @@ class T_Document(Base):
     is_shared = Column(Boolean, nullable=False, default=False)
     summary = Column(Text, nullable=False, default="")
     metadata_info = Column(JSON, nullable=False)
+    document_role = Column(String(50), nullable=False, default="normal") #★カスタマイズ開発での追加
 
     collection_documents = relationship(
         "T_CollectionDocument",
@@ -153,3 +154,97 @@ class T_Artifact(Base):
 
     conversation = relationship("T_Conversation", back_populates="artifacts")
     message = relationship("T_Message", back_populates="artifacts")
+    
+    
+    
+# ★カスタマイズ開発追加
+class ReviewTask(Base):
+    __tablename__ = "review_tasks"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
+    
+    # pending / running / completed / failed
+    status = Column(String(50), nullable=False, default="pending")
+
+    # 何個のノウハウルールを処理対象にしたか
+    total_rules = Column(Integer, nullable=False, default=0)
+
+    # 何個のルールを処理済みか
+    completed_rules = Column(Integer, nullable=False, default=0)
+
+    # 最終的な要約。最初は未使用でもOK
+    summary = Column(Text, nullable=True)
+
+    # エラー時のメッセージ
+    error_message = Column(Text, nullable=True)
+    
+     # レビュー対象ドキュメントID一覧
+    # PostgreSQL JSON/JSONB を想定
+    input_doc_ids = Column(JSON, nullable=False, default=list)
+
+    # ノウハウドキュメントID一覧
+    knowhow_doc_ids = Column(JSON, nullable=False, default=list)
+
+    created_at = Column(DateTime(timezone=True), nullable=False, default=func.now())
+    
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        default=func.now(),
+        onupdate=func.now(),
+    )
+
+    results = relationship(
+        "ReviewResult",
+        back_populates="task",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    
+class ReviewResult(Base):
+    __tablename__ = "review_results"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
+
+    task_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("review_tasks.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # どのノウハウルールに基づく指摘か
+    rule_id = Column(String(255), nullable=False, index=True)
+
+    # ng / unknown
+    status = Column(String(50), nullable=False)
+
+    # low / medium / high
+    severity = Column(String(50), nullable=False)
+
+    # 指摘対象。Signal名、PDU名、章番号など
+    target = Column(String(500), nullable=True)
+
+    # 指摘内容
+    finding = Column(Text, nullable=False)
+
+    # 判断理由
+    reason = Column(Text, nullable=False)
+
+    # 修正案
+    suggestion = Column(Text, nullable=False)
+
+    # 根拠情報
+    evidences = Column(JSON, nullable=False, default=list)
+
+    created_at = Column(DateTime(timezone=True), nullable=False, default=func.now())
+
+    task = relationship(
+        "ReviewTask",
+        back_populates="results",
+    )
+    
+    
+    
+    
+    

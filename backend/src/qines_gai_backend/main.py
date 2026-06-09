@@ -17,6 +17,8 @@ from qines_gai_backend.modules.conversations.api import (
 )
 from qines_gai_backend.modules.conversion.api import router as conversion_service_router
 from qines_gai_backend.modules.documents.api import router as documents_service_router
+# ★カスタマイズ開発での追加
+from qines_gai_backend.modules.reviews.api import router as reviews_router
 
 load_dotenv("/app/.env")
 logger = get_logger(__name__)
@@ -127,6 +129,8 @@ app.include_router(ai_service_router)
 app.include_router(conversation_service_router)
 app.include_router(artifacts_service_router)
 app.include_router(conversion_service_router)
+# ★カスタマイズ開発での追加
+app.include_router(reviews_router)
 
 
 if __name__ == "__main__":

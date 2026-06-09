@@ -13,6 +13,9 @@ from qines_gai_backend.modules.documents.repositories import DocumentRepository
 
 from .data_connection import get_db_session, get_meili_client
 
+# ★カスタマイズ開発での追加
+from qines_gai_backend.modules.reviews.repositories import ReviewRepository
+
 load_dotenv("/app/.env")
 
 
@@ -60,3 +63,11 @@ async def get_conversion_repository(
     meili_client: AsyncClient = Depends(get_meili_client),
 ) -> ConversionRepository:
     return ConversionRepository(session, meili_client)
+
+# ★カスタマイズ開発での追加
+@log_function_start_end
+async def get_review_repository(
+    session: AsyncSession = Depends(get_db_session),
+    meili_client: AsyncClient = Depends(get_meili_client),
+) -> ReviewRepository:
+    return ReviewRepository(session, meili_client)

@@ -6,7 +6,7 @@ from io import BytesIO
 from pathlib import Path as FilePath
 
 from fastapi import UploadFile
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_text_splitters import (RecursiveCharacterTextSplitter, MarkdownHeaderTextSplitter,)
 from meilisearch_python_sdk.errors import MeilisearchApiError
 from mypy_boto3_s3 import S3Client
 
@@ -175,6 +175,7 @@ class DocumentService:
                 subject=request.subject,
                 genre=request.genre,
                 release=request.release,
+                document_role=request.document_role,  # ★カスタマイズ開発での追加
             )
 
             # commit前にPydanticモデルに変換
@@ -357,21 +358,43 @@ class DocumentService:
             file_extension = FilePath(filename).suffix.lower()
             processor = get_processor(file_extension)
 
-            # プロセッサでファイルを処理（LangChainのDocumentリストを取得）
-            documents = processor.process(temp_file_path, filename)
-
-
-            # ドキュメント全体のコンテンツを結合
-            full_content = "\n\n".join([doc.page_content for doc in documents])
-
-            excel_extensions = {".xlsx", ".xls", ".xlsm"}
+            excel_extensions = {".xlsx"}
+            markdown_extensions = {".md"}
 
             if file_extension in excel_extensions:
                 # Excelの場合：
                 # ExcelProcessorがすでに「1行＝1Document(チャンク)」として完璧に分割しているため、
                 # 強制的な文字数分割（スプリッター）は行わず、そのまま chunks として利用する
+                
+                # プロセッサでファイルを処理（LangChainのDocumentリストを取得）
+                documents = processor.process(temp_file_path, filename)
+                
                 chunks = documents
+                
+            elif file_extension in markdown_extensions:
+                documents = processor.process(temp_file_path)
+
+                full_markdown = "\n\n".join([doc.page_content for doc in documents])
+
+                headers_to_split_on = [
+                    ("#", "h1"),
+                    ("##", "h2"),
+                    ("###", "h3"),
+                    ("####", "h4"),
+                ]
+
+                markdown_splitter = MarkdownHeaderTextSplitter(
+                    headers_to_split_on=headers_to_split_on,
+                    strip_headers=False,
+                )
+
+                chunks = markdown_splitter.split_text(full_markdown)
+                
             else:
+                
+                # プロセッサでファイルを処理（LangChainのDocumentリストを取得）
+                documents = processor.process(temp_file_path)
+                
                 # チャンク分割
                 text_splitter = RecursiveCharacterTextSplitter(
                     chunk_size=2000,
@@ -380,6 +403,9 @@ class DocumentService:
                     length_function=len,
                 )
                 chunks = text_splitter.split_documents(documents)
+                
+            # ドキュメント全体のコンテンツを結合
+            full_content = "\n\n".join([doc.page_content for doc in documents])
 
             # 各チャンクに対してMeilisearchChunkを作成
             meili_pages = []
@@ -401,14 +427,22 @@ class DocumentService:
                     file_type=resolved_file_type,
                     genre=request.genre,
                     release=request.release,
+                    document_role=request.document_role, #★カスタマイズ開発での追加
                 )
                 meili_pages.append(meili_page.model_dump())
 
             # 全チャンクを一括でMeilisearchに登録
+            # ★カスタマイズ開発での更新
             if meili_pages:
-                await self.repository.meili_client.index("qines-gai").add_documents(
+                task = await self.repository.meili_client.index("qines-gai").add_documents(
                     meili_pages
                 )
+                
+                await self.repository.meili_client.wait_for_task(
+                    task.task_uid,
+                    raise_for_status=True,
+                )
+                
                 logger.info(
                     f"Successfully indexed {len(meili_pages)} chunks for document: {filename}"
                 )

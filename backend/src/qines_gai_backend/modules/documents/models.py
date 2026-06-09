@@ -43,6 +43,8 @@ class DocumentBase(BaseModel):
         description="ドキュメントの要約",
         examples=["This document describes the CAN driver specification..."],
     )
+    
+    document_role: str = "normal"
 
     @classmethod
     def from_db(cls, document: T_Document) -> "DocumentBase":
@@ -57,6 +59,7 @@ class DocumentBase(BaseModel):
             release=metadata.get("release"),
             file_type=document.file_type,
             summary=document.summary,
+            document_role=document.document_role,
         )
 
 
@@ -120,6 +123,11 @@ class UploadDocumentRequest(BaseModel):
     release: Optional[str] = Field(
         None, description="AUTOSARドキュメントのリリースバージョン"
     )
+    #   ★カスタマイズ開発での追加
+    document_role: Literal["normal", "review_rule", "review_input"] = Field(
+        default="normal",
+        description="レビュー機能上のドキュメントの役割",
+    )
 
 
 class MeilisearchChunk(BaseModel):
@@ -139,3 +147,4 @@ class MeilisearchChunk(BaseModel):
     genre: str | None = None
     release: str | None = None
     _formatted: dict[str, Any] | None
+    document_role: str = "normal"
