@@ -27,6 +27,7 @@ from qines_gai_backend.shared.exceptions import (
     DocumentValidationError,
 )
 
+from langchain_core.documents import Document
 logger = get_logger(__name__)
 
 
@@ -40,6 +41,14 @@ class DocumentService:
             repository (DocumentRepository): ドキュメントデータアクセス用リポジトリ
         """
         self.repository = repository
+        
+    # ★カスタマイズ開発での追加
+    def _is_review_rule(self, document_role: str | None) -> bool:
+        return document_role == "review_rule"
+
+    def _is_review_input(self, document_role: str | None) -> bool:
+        return document_role == "review_input"
+    
 
     @log_function_start_end
     async def search_documents(
@@ -243,7 +252,81 @@ class DocumentService:
             await self.repository.rollback()
             logger.error(f"Error deleting document: {e}")
             raise BaseAppError("Failed to delete document")
+        
+    # ★カスタマイズ開発での追加
+    async def delete_review_document(
+        self,
+        document_id: str,
+        s3_client: S3Client,
+    )-> None:
+        """
+        ベテランノウハウ専用の削除メソッド
+        ドキュメントをデータベース、MeilSearch、ストレージから完全に削除する。
 
+        Args:
+            document_id (str): 削除対象のドキュメントID
+            s3_client (S3Client): S3クライアント
+
+        Raises:
+            DocumentNotFoundError: ドキュメントが存在しない場合
+            DocumentNotAuthorizedError: ユーザーに権限がない場合
+            BaseAppError: 削除処理中にエラーが発生した場合
+
+        Note:
+            関連するコレクションや会話履歴にも影響するため注意が必要
+        """
+        try:
+            document = await self.repository.get_document_with_collections_by_id(
+                document_id = document_id,
+            )
+            # ドキュメント存在確認と権限チェック
+            if document is None:
+                raise DocumentNotFoundError("Document not found")
+
+            if document.document_role not in ["review_rule", "review_input"]:
+                raise DocumentNotAuthorizedError(
+                    "Only review documents can be deleted by any user"
+                )
+            
+            #  削除処理には「ログインユーザー」ではなく「所有者 user_id」を使う
+            owner_user_id = document.user_id
+            
+            if not owner_user_id:
+                raise DocumentValidationError(
+                    "Document owner user_id is missing"
+                )
+
+            # Meilisearchから削除
+            index = self.repository.meili_client.index("qines-gai")
+            task = await index.delete_documents_by_filter(
+                filter=[f"doc_id = '{document_id}'", f"uploader = '{owner_user_id}'"]
+            )
+            await self.repository.meili_client.wait_for_task(
+                task.task_uid, raise_for_status=True
+            )
+
+            # データベースから削除
+            await self.repository.delete_document(document)
+            await self.repository.commit()
+
+            # S3から削除
+            await self._delete_from_storage(
+                document=document, 
+                user_id=owner_user_id, 
+                s3_client=s3_client,
+            )
+
+        except (DocumentNotFoundError, DocumentNotAuthorizedError):
+            await self.repository.rollback()
+            raise
+        except Exception as e:
+            await self.repository.rollback()
+            logger.error(f"Error deleting document: {e}")
+            raise BaseAppError("Failed to delete document")
+
+        
+        
+    
     def _validate_file(self, file: UploadFile) -> None:
         """アップロードされたファイルのサイズ、形式、内容をバリデーションする。
 
@@ -360,7 +443,10 @@ class DocumentService:
 
             excel_extensions = {".xlsx"}
             markdown_extensions = {".md"}
-
+            
+            is_review_rule = self._is_review_rule(request.document_role)
+            is_review_input = self._is_review_input(request.document_role)
+            
             if file_extension in excel_extensions:
                 # Excelの場合：
                 # ExcelProcessorがすでに「1行＝1Document(チャンク)」として完璧に分割しているため、
@@ -368,14 +454,33 @@ class DocumentService:
                 
                 # プロセッサでファイルを処理（LangChainのDocumentリストを取得）
                 documents = processor.process(temp_file_path, filename)
-                
-                chunks = documents
-                
-            elif file_extension in markdown_extensions:
+            else:
                 documents = processor.process(temp_file_path)
+                
+            # ドキュメント全体のコンテンツ
+            full_content = "\n\n".join([doc.page_content for doc in documents])
 
-                full_markdown = "\n\n".join([doc.page_content for doc in documents])
+            if not full_content.strip():
+                raise BaseAppError("Parsed document content is empty")
 
+            # review_rule は 1ファイル1チャンク
+            if is_review_rule:
+                chunks = [
+                    Document(
+                        page_content=full_content,
+                        metadata={
+                            "total_pages": 1,
+                            "page_num": 1,
+                        },
+                    )
+                ]
+            
+            # review_input の Excel は 1行=1チャンクを維持
+            elif is_review_input and file_extension in excel_extensions:
+                chunks = documents
+
+            # review_input の Markdown は見出し単位で分割
+            elif is_review_input and file_extension in markdown_extensions:
                 headers_to_split_on = [
                     ("#", "h1"),
                     ("##", "h2"),
@@ -388,13 +493,30 @@ class DocumentService:
                     strip_headers=False,
                 )
 
-                chunks = markdown_splitter.split_text(full_markdown)
-                
+                chunks = markdown_splitter.split_text(full_content)
+            
+            # 通常Excel
+            elif file_extension in excel_extensions:
+                chunks = documents
+
+            # 通常Markdown
+            elif file_extension in markdown_extensions:
+                headers_to_split_on = [
+                    ("#", "h1"),
+                    ("##", "h2"),
+                    ("###", "h3"),
+                    ("####", "h4"),
+                ]
+
+                markdown_splitter = MarkdownHeaderTextSplitter(
+                    headers_to_split_on=headers_to_split_on,
+                    strip_headers=False,
+                )
+
+                chunks = markdown_splitter.split_text(full_content)
+            
+            # その他の既存ファイル
             else:
-                
-                # プロセッサでファイルを処理（LangChainのDocumentリストを取得）
-                documents = processor.process(temp_file_path)
-                
                 # チャンク分割
                 text_splitter = RecursiveCharacterTextSplitter(
                     chunk_size=2000,

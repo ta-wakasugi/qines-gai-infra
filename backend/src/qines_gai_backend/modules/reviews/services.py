@@ -9,6 +9,7 @@ from qines_gai_backend.modules.ai.agents.review_agent_schema import (
 )
 
 from qines_gai_backend.modules.ai.llm_wrapper import LLMWrapper
+from fastapi import HTTPException
 
 from qines_gai_backend.logger_config import get_logger
 
@@ -110,4 +111,57 @@ class ReviewService:
         task_id: int,
     ):
         return await self.repository.list_results(task_id=task_id)
+    
+    async def list_review_documents(
+        self,
+        document_role: str,
+    ):
+        if document_role not in ["review_rule", "review_input"]:
+            raise ValueError("document_role must be review_rule or review_input")
+
+        documents = await self.repository.list_documents_by_role(document_role)
+
+        return [
+            {
+                "doc_id": str(
+                    getattr(doc, "doc_id", None)
+                    or getattr(doc, "document_id", None)
+                    or getattr(doc, "id", "")
+                ),
+                "file_name": (
+                    getattr(doc, "file_name", None)
+                    or getattr(doc, "filename", None)
+                    or getattr(doc, "document_name", None)
+                    or getattr(doc, "name", None)
+                    or getattr(doc, "title", None)
+                    or ""
+                ),
+                "document_role": getattr(doc, "document_role", document_role),
+                "created_at": getattr(doc, "created_at", None),
+                "updated_at": getattr(doc, "updated_at", None),
+            }
+            for doc in documents
+        ]
+        
+    async def update_review_result_feedback(
+        self,
+        task_id: str,
+        result_id: str,
+        payload,
+    ):
+        review_result = await self.repository.update_result_feedback(
+            task_id=task_id,
+            result_id=result_id,
+            human_status=payload.human_status,
+            human_comment=payload.human_comment,
+            corrected_finding=payload.corrected_finding,
+            corrected_reason=payload.corrected_reason,
+            corrected_suggestion=payload.corrected_suggestion,
+        )
+
+        if review_result is None:
+            raise HTTPException(status_code=404, detail="Review result not found")
+
+        return review_result
+    
     

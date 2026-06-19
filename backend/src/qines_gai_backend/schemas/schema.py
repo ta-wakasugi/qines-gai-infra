@@ -244,6 +244,13 @@ class ReviewResult(Base):
         back_populates="results",
     )
     
+    human_status = Column(String(50), nullable=True)
+    human_comment = Column(Text, nullable=True)
+    corrected_finding = Column(Text, nullable=True)
+    corrected_reason = Column(Text, nullable=True)
+    corrected_suggestion = Column(Text, nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+    
     
     
     

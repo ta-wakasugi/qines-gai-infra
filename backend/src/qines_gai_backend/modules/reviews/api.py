@@ -1,12 +1,25 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Path, Response
 from uuid import UUID
+from mypy_boto3_s3 import S3Client
 
 from qines_gai_backend.config.dependencies.services import get_review_service
+from qines_gai_backend.config.dependencies.data_connection import get_s3_client
+from qines_gai_backend.config.dependencies.services import get_document_service
+from qines_gai_backend.modules.documents.services import DocumentService
+
+from qines_gai_backend.shared.exceptions import (
+    BaseAppError,
+    DocumentNotAuthorizedError,
+    DocumentNotFoundError,
+)
+
 from qines_gai_backend.modules.reviews.models import (
     CreateReviewRequest,
     CreateReviewResponse,
     ReviewResultResponse,
     ReviewTaskResponse,
+    ReviewDocumentResponse,
+    ReviewResultFeedbackUpdate,
 )
 from qines_gai_backend.modules.reviews.services import ReviewService
 
@@ -44,6 +57,12 @@ async def create_review(
         status=task.status,
     )
 
+@router.get("/documents", response_model=list[ReviewDocumentResponse])
+async def list_review_documents(
+    document_role: str = Query(..., pattern="^(review_rule|review_input)$"),
+    service: ReviewService = Depends(get_review_service),
+):
+    return await service.list_review_documents(document_role)
 
 @router.get("/{task_id}", response_model=ReviewTaskResponse)
 async def get_review_task(
@@ -108,3 +127,37 @@ async def list_review_results(
         )
         for result in results
     ]
+    
+
+@router.patch("/{task_id}/results/{result_id}")
+async def update_review_result_feedback(
+    task_id: str,
+    result_id: str,
+    payload: ReviewResultFeedbackUpdate,
+    service: ReviewService = Depends(get_review_service),
+):
+    return await service.update_review_result_feedback(
+        task_id=task_id,
+        result_id=result_id,
+        payload=payload,
+    )
+    
+@router.delete("/documents/{document_id}", status_code=204)
+async def delete_review_document(
+    document_id: str = Path(..., description="レビュー用ドキュメントID"),
+    document_service: DocumentService = Depends(get_document_service),
+    s3_client: S3Client = Depends(get_s3_client),
+):
+    try:
+        await document_service.delete_review_document(
+            document_id=document_id,
+            s3_client=s3_client,
+        )
+        return Response(status_code=204)
+
+    except DocumentNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except DocumentNotAuthorizedError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except BaseAppError as e:
+        raise HTTPException(status_code=500, detail="Internal Server Error")

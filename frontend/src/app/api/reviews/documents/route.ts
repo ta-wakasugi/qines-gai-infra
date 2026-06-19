@@ -3,17 +3,23 @@
 import { getAuthToken } from "@/actions/auth";
 import { baseUrl } from "@/api/baseUrl";
 
-export const POST = async (request: Request) => {
-  const formData = await request.formData();
+export const GET = async (request: Request) => {
+  const { searchParams } = new URL(request.url);
+  const documentRole = searchParams.get("document_role");
 
-  const url = baseUrl + "/api/documents/upload";
+  if (!documentRole) {
+    return Response.json({ detail: "document_role is required" }, { status: 400 });
+  }
+
+  const url =
+    baseUrl + `/reviews/documents?document_role=${encodeURIComponent(documentRole)}`;
 
   const response = await fetch(url, {
-    method: "POST",
+    method: "GET",
     headers: {
       Authorization: "Bearer " + (await getAuthToken()),
     },
-    body: formData,
+    cache: "no-store",
   });
 
   const text = await response.text();

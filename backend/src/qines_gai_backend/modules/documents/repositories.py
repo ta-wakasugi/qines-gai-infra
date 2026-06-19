@@ -79,16 +79,28 @@ class DocumentRepository:
                 metadata_info["release"] = release
 
             # contentの要約生成ロジックの追加
+            # ★カスタマイズ開発での追加
             content_summary = None
-            try:
-                # LLMを使用してcontentの要約を生成
-                wrapper = LLMWrapper()
-                model = wrapper.get_llm(model_type=os.getenv("LLM_TYPE"), temperature=0)
 
-                # 要約生成プロンプト
-                # TODO: contentが長すぎる場合の対応（分割して要約→統合など）
-                # TODO: サマリ生成中にUIもブロックされるため非同期アップロードを検討
-                summarization_prompt = f"""
+            if document_role in {"review_rule", "review_input"}:
+                # レビュー用ドキュメントはアップロード時のLLM要約をスキップする
+                # content には _process_and_index_document() でパースされた全文が入っている
+                content_summary = content[:5000]
+
+                logger.info(
+                    f"Skipped LLM summary generation for review document. "
+                    f"document_id={document_id}, document_role={document_role}"
+                )
+            else:
+                try:
+                    # LLMを使用してcontentの要約を生成
+                    wrapper = LLMWrapper()
+                    model = wrapper.get_llm(model_type=os.getenv("LLM_TYPE"), temperature=0)
+
+                    # 要約生成プロンプト
+                    # TODO: contentが長すぎる場合の対応（分割して要約→統合など）
+                    # TODO: サマリ生成中にUIもブロックされるため非同期アップロードを検討
+                    summarization_prompt = f"""
  あなたの役割は、与えられたドキュメントの内容を詳細に要約することです。
  ドキュメントに章立てがある場合は、章ごとに何が書かれているかを整理して記述してください。
  各章の要点、記載されている内容の概要、重要な情報や論点などを明確にまとめ、初めてそのドキュメントを見る人でも、どこに何が書かれているかが把握できるレベルの具体性を持たせてください。
@@ -108,19 +120,19 @@ class DocumentRepository:
 
  要約:"""
 
-                # LLMで要約生成
-                response = model.invoke(summarization_prompt)
-                content_summary = (
-                    response.content if hasattr(response, "content") else str(response)
-                )
+                    # LLMで要約生成
+                    response = model.invoke(summarization_prompt)
+                    content_summary = (
+                        response.content if hasattr(response, "content") else str(response)
+                    )
 
-                logger.info(
-                    f"Content summary generated successfully for document: {document_id}"
-                )
+                    logger.info(
+                        f"Content summary generated successfully for document: {document_id}"
+                    )
 
-            except Exception as e:
-                logger.exception(f"Failed to generate content summary: {str(e)}")
-                content_summary = "要約の生成に失敗しました"
+                except Exception as e:
+                    logger.exception(f"Failed to generate content summary: {str(e)}")
+                    content_summary = "要約の生成に失敗しました"
 
             # file_typeが明示的に渡された場合はそれを使用、なければファイル名から推測
             resolved_file_type = (
@@ -226,6 +238,19 @@ class DocumentRepository:
             _ = collection_doc.position
 
         return document
+
+    @log_function_start_end
+    async def get_document_with_collections_by_id(
+        self,
+        document_id: str,
+    ):
+        stmt = (
+            select(T_Document)
+            .where(T_Document.document_id == document_id)
+        )
+
+        result = await self.session.execute(stmt)
+        return result.unique().scalar_one_or_none()
 
     @log_function_start_end
     async def delete_document(self, document: T_Document) -> None:

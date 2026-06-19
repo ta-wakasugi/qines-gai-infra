@@ -1,9 +1,10 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from meilisearch_python_sdk import AsyncClient
+from datetime import datetime
 from uuid import UUID
 
-from qines_gai_backend.schemas.schema import ReviewTask, ReviewResult
+from qines_gai_backend.schemas.schema import T_Document, ReviewTask, ReviewResult
 
 class ReviewRepository:
     def __init__(
@@ -136,3 +137,59 @@ class ReviewRepository:
     def get_meili_index_name(self) -> str:
         # 実際の既存index名に合わせてください
         return "qines-gai"
+    
+    async def list_documents_by_role(
+        self,
+        document_role: str,
+    ) -> list[T_Document]:
+    
+        stmt = (
+            select(T_Document)
+            .where(T_Document.document_role == document_role)
+        )
+
+        result = await self.session.execute(stmt)
+        return list(result.unique().scalars().all())
+    
+    async def update_result_feedback(
+        self,
+        task_id: str,
+        result_id: str,
+        human_status: str | None = None,
+        human_comment: str | None = None,
+        corrected_finding: str | None = None,
+        corrected_reason: str | None = None,
+        corrected_suggestion: str | None = None,
+    ) -> ReviewResult | None:
+        stmt = select(ReviewResult).where(
+            ReviewResult.id == result_id,
+            ReviewResult.task_id == task_id,
+        )
+
+        result = await self.session.execute(stmt)
+        review_result = result.scalar_one_or_none()
+
+        if review_result is None:
+            return None
+
+        if human_status is not None:
+            review_result.human_status = human_status
+
+        if human_comment is not None:
+            review_result.human_comment = human_comment
+
+        if corrected_finding is not None:
+            review_result.corrected_finding = corrected_finding
+
+        if corrected_reason is not None:
+            review_result.corrected_reason = corrected_reason
+
+        if corrected_suggestion is not None:
+            review_result.corrected_suggestion = corrected_suggestion
+
+        review_result.reviewed_at = datetime.utcnow()
+
+        await self.session.commit()
+        await self.session.refresh(review_result)
+
+        return review_result

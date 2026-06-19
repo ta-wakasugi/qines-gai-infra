@@ -1,6 +1,7 @@
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Optional,Literal
 from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 class CreateReviewRequest(BaseModel):
@@ -53,3 +54,33 @@ class ReviewResultResponse(BaseModel):
     suggestion: str
     evidences: list[dict[str, Any]]
     created_at: datetime
+    human_status: Optional[str] = None
+    human_comment: Optional[str] = None
+    corrected_finding: Optional[str] = None
+    corrected_reason: Optional[str] = None
+    corrected_suggestion: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
+    
+    
+class ReviewDocumentResponse(BaseModel):
+    doc_id: str
+    file_name: Optional[str] = None
+    document_role: str
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    
+class ReviewResultFeedbackUpdate(BaseModel):
+    human_status: Optional[
+        Literal[
+            "correct",
+            "false_positive",
+            "pending",
+            "fixed",
+            "needs_knowhow_update",
+        ]
+    ] = None
+    human_comment: Optional[str] = None
+    corrected_finding: Optional[str] = None
+    corrected_reason: Optional[str] = None
+    corrected_suggestion: Optional[str] = None
+    
