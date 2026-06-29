@@ -193,3 +193,55 @@ class ReviewRepository:
         await self.session.refresh(review_result)
 
         return review_result
+    
+    async def list_feedback_examples_by_rule_id(
+        self,
+        *,
+        rule_id: str,
+        limit_per_status: int = 2,
+    ) -> list[ReviewResult]:
+        """
+        指定 rule_id に対する過去の人間レビュー済み結果を取得する。
+
+        用途:
+        - 次回レビュー時に、同じ rule_id の過去フィードバックをLLMプロンプトへ入れる
+        - correct / false_positive / fixed をバランスよく取得する
+        """
+
+        target_statuses = [
+            "correct",
+            "false_positive",
+            "fixed",
+        ]
+
+        feedback_examples: list[ReviewResult] = []
+
+        for human_status in target_statuses:
+            stmt = (
+                select(ReviewResult)
+                .where(ReviewResult.rule_id == rule_id)
+                .where(ReviewResult.human_status == human_status)
+                .order_by(ReviewResult.reviewed_at.desc(), ReviewResult.id.desc())
+                .limit(limit_per_status)
+            )
+
+            result = await self.session.execute(stmt)
+            feedback_examples.extend(list(result.scalars().all()))
+
+        return feedback_examples
+    
+    async def get_task_by_id(self, task_id: str) -> ReviewTask | None:
+        stmt = select(ReviewTask).where(ReviewTask.id == task_id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+
+    async def list_results_by_task_id(self, task_id: str) -> list[ReviewResult]:
+        stmt = (
+            select(ReviewResult)
+            .where(ReviewResult.task_id == task_id)
+            .order_by(ReviewResult.created_at.asc(), ReviewResult.id.asc())
+        )
+
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())

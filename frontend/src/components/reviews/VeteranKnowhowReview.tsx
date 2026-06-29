@@ -71,6 +71,41 @@ type ResultFeedbackDraft = {
   corrected_suggestion?: string;
 };
 
+type NoFindingFeedbackDraft = {
+  human_status?: string;
+  human_comment?: string;
+  missed_finding?: string;
+  missed_reason?: string;
+  missed_suggestion?: string;
+};
+
+type ReviewFinding = {
+  id: string;
+  rule_id: string;
+  status: string;
+  severity: string;
+  target?: string | null;
+  finding: string;
+  reason: string;
+  suggestion: string;
+  evidences: Evidence[];
+  human_status?: string | null;
+  human_comment?: string | null;
+  corrected_finding?: string | null;
+  corrected_reason?: string | null;
+  corrected_suggestion?: string | null;
+  reviewed_at?: string | null;
+};
+
+type ReviewCaseResult = {
+  case_id: string;
+  title: string;
+  document_id?: string | null;
+  chunk_ids: string[];
+  content: string;
+  findings: ReviewFinding[];
+};
+
 function normalizeReviewResults(json: ReviewResultsResponse): ReviewResult[] {
   if (Array.isArray(json)) {
     return json;
@@ -115,6 +150,11 @@ export default function VeteranKnowhowReview() {
   const [results, setResults] = useState<ReviewResult[]>([]);
   const [resultsLoaded, setResultsLoaded] = useState(false);
   const [resultError, setResultError] = useState<string | null>(null);
+
+  const [caseResults, setCaseResults] = useState<ReviewCaseResult[]>([]);
+  const [noFindingFeedbackDrafts, setNoFindingFeedbackDrafts] = useState<
+    Record<string, NoFindingFeedbackDraft>
+  >({});
 
   const [uploadingKnowhow, setUploadingKnowhow] = useState(false);
   const [reviewing, setReviewing] = useState(false);
@@ -286,9 +326,21 @@ export default function VeteranKnowhowReview() {
       setTask(latestTask);
 
       if (latestTask.status === "completed") {
-        const reviewResults = await fetchReviewResults(taskId);
+        const latestTaskId = normalizeId(getTaskId(latestTask)) || normalizeId(taskId);
+
+        console.log("completed latestTask:", latestTask);
+        console.log("completed latestTaskId:", latestTaskId);
+
+        if (!latestTaskId) {
+          throw new Error("レビュー完了後のtask_idを取得できませんでした。");
+        }
+
+        const reviewResults = await fetchReviewResults(latestTaskId);
         setResults(reviewResults);
         initializeFeedbackDrafts(reviewResults);
+
+        await fetchCaseResults(latestTaskId);
+
         setResultsLoaded(true);
         setResultError(null);
         alert("レビューが完了しました。");
@@ -315,12 +367,51 @@ export default function VeteranKnowhowReview() {
     return normalizeId(task?.id) || normalizeId(task?.task_id);
   }
 
+  const fetchCaseResults = async (taskId: string) => {
+    const normalizedTaskId = normalizeId(taskId);
+
+    if (!normalizedTaskId) {
+      throw new Error("case-results取得用のtask_idが不正です。");
+    }
+
+    const response = await fetch(
+      `/api/reviews/${encodeURIComponent(normalizedTaskId)}/case-results`
+    );
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || "case-results の取得に失敗しました");
+    }
+
+    const data = (await response.json()) as ReviewCaseResult[];
+
+    setCaseResults(data);
+
+    const noFindingDrafts: Record<string, NoFindingFeedbackDraft> = {};
+
+    for (const caseResult of data) {
+      if (caseResult.findings.length === 0) {
+        noFindingDrafts[caseResult.case_id] = {
+          human_status: "",
+          human_comment: "",
+          missed_finding: "",
+          missed_reason: "",
+          missed_suggestion: "",
+        };
+      }
+    }
+
+    setNoFindingFeedbackDrafts(noFindingDrafts);
+
+    return data;
+  };
+
   function normalizeReviewTask(task: ReviewTask, fallbackTaskId: string): ReviewTask {
-    const normalizedTaskId = getTaskId(task) || fallbackTaskId;
+    const normalizedTaskId = getTaskId(task) || normalizeId(fallbackTaskId);
 
     return {
       ...task,
-      id: task.id ?? task.task_id ?? fallbackTaskId,
+      id: normalizedTaskId,
       task_id: normalizedTaskId,
       total_rules: task.total_rules ?? 0,
       completed_rules: task.completed_rules ?? 0,
@@ -340,6 +431,8 @@ export default function VeteranKnowhowReview() {
     setTask(null);
     setCurrentTaskId("");
     setResults([]);
+    setCaseResults([]);
+    setNoFindingFeedbackDrafts({});
     setResultsLoaded(false);
     setResultError(null);
     setFeedbackError("");
@@ -473,6 +566,19 @@ export default function VeteranKnowhowReview() {
     }));
   }
 
+  function updateNoFindingFeedbackDraft(
+    caseId: string,
+    patch: Partial<NoFindingFeedbackDraft>
+  ) {
+    setNoFindingFeedbackDrafts((prev) => ({
+      ...prev,
+      [caseId]: {
+        ...prev[caseId],
+        ...patch,
+      },
+    }));
+  }
+
   async function saveResultFeedback(resultId: string) {
     const targetResult = results.find((result) => result.id === resultId);
 
@@ -529,6 +635,7 @@ export default function VeteranKnowhowReview() {
       const refreshedResults = await fetchReviewResults(taskId);
       setResults(refreshedResults);
       initializeFeedbackDrafts(refreshedResults);
+      await fetchCaseResults(taskId);
     } catch (e) {
       console.error(e);
       setFeedbackError(
@@ -808,154 +915,319 @@ export default function VeteranKnowhowReview() {
         </div>
       )}
 
-      {task?.status === "completed" && resultsLoaded && results.length === 0 && (
-        <div className="mt-4 rounded-xl border border-gray-300 bg-white p-4 text-left text-sm">
-          <h3 className="text-base font-bold">AIレビュー結果</h3>
-          <p className="mt-2 text-gray-700">指摘事項はありませんでした。</p>
-        </div>
-      )}
-
-      {results.length > 0 && (
+      {task?.status === "completed" && resultsLoaded && (
         <div className="mt-4 rounded-xl border border-gray-300 bg-white p-4 text-left">
-          <div className="flex items-center justify-between">
+          <div className="mb-4 flex items-center justify-between">
             <h3 className="text-base font-bold">AIレビュー結果</h3>
-            <span className="text-sm text-gray-600">{results.length}件の指摘</span>
+            <span className="text-sm text-gray-600">
+              {results.length}件の指摘 / {caseResults.length}件のテストデータ
+            </span>
           </div>
 
-          <div className="mt-4 flex flex-col gap-3">
-            {results.map((result, index) => (
-              <div
-                key={result.id}
-                className="rounded-xl border border-gray-300 bg-white p-4 text-sm"
-              >
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <div className="font-bold">
-                    #{index + 1} {result.target ?? "対象不明"}
-                  </div>
-                  <span className="rounded-full border border-gray-300 px-2 py-1 text-xs">
-                    {result.severity ?? "-"}
-                  </span>
-                </div>
+          {caseResults.length === 0 ? (
+            <p className="text-sm text-gray-700">
+              レビュー対象データを取得できませんでした。
+            </p>
+          ) : (
+            <div className="flex flex-col gap-6">
+              {caseResults.map((caseResult, caseIndex) => {
+                const noFindingDraft =
+                  noFindingFeedbackDrafts[caseResult.case_id] ?? {};
 
-                <div className="mt-2">
-                  <strong>指摘:</strong>
-                  <div className="mt-1 whitespace-pre-wrap">{result.finding}</div>
-                </div>
+                const isMissedFinding =
+                  noFindingDraft.human_status === "missed_finding";
 
-                {result.reason && (
-                  <div className="mt-3">
-                    <strong>理由:</strong>
-                    <div className="mt-1 whitespace-pre-wrap">{result.reason}</div>
-                  </div>
-                )}
-
-                {result.suggestion && (
-                  <div className="mt-3">
-                    <strong>修正案:</strong>
-                    <div className="mt-1 whitespace-pre-wrap">{result.suggestion}</div>
-                  </div>
-                )}
-
-                <div className="mt-3 text-xs text-gray-500">
-                  <div>
-                    <strong>rule_id:</strong> {result.rule_id ?? "-"}
-                  </div>
-                  <div>
-                    <strong>status:</strong> {result.status ?? "-"}
-                  </div>
-                </div>
-
-                {result.evidences && result.evidences.length > 0 && (
-                  <div className="mt-3">
-                    <strong>根拠:</strong>
-                    <div className="mt-2 flex flex-col gap-2">
-                      {result.evidences.map((evidence, evidenceIndex) => (
-                        <div
-                          key={`${result.id}-${evidenceIndex}`}
-                          className="rounded bg-gray-100 p-2"
-                        >
-                          {evidence.location && (
-                            <div className="mb-1 text-xs text-gray-500">
-                              location: {evidence.location}
-                            </div>
-                          )}
-
-                          {evidence.document_id && (
-                            <div className="mb-1 text-xs text-gray-500">
-                              document_id: {evidence.document_id}
-                            </div>
-                          )}
-
-                          {evidence.chunk_id && (
-                            <div className="mb-1 text-xs text-gray-500">
-                              chunk_id: {evidence.chunk_id}
-                            </div>
-                          )}
-
-                          <pre className="whitespace-pre-wrap text-xs">
-                            {evidence.quote ?? "根拠テキストなし"}
-                          </pre>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
-                  <div className="font-bold text-blue-900">人間レビュー</div>
-
-                  <div className="mt-3">
-                    <label className="block text-sm font-bold">判定</label>
-                    <select
-                      value={feedbackDrafts[result.id]?.human_status ?? ""}
-                      onChange={(e) =>
-                        updateFeedbackDraft(result.id, {
-                          human_status: e.target.value,
-                        })
-                      }
-                      className="mt-1 h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
-                    >
-                      <option value="">未判定</option>
-                      <option value="correct">正しい指摘</option>
-                      <option value="false_positive">誤検出</option>
-                      <option value="pending">保留</option>
-                      <option value="fixed">修正済み</option>
-                      <option value="needs_knowhow_update">ノウハウ改善が必要</option>
-                    </select>
-                  </div>
-
-                  <div className="mt-3">
-                    <label className="block text-sm font-bold">コメント</label>
-                    <textarea
-                      value={feedbackDrafts[result.id]?.human_comment ?? ""}
-                      onChange={(e) =>
-                        updateFeedbackDraft(result.id, {
-                          human_comment: e.target.value,
-                        })
-                      }
-                      placeholder="判定理由、修正内容、ノウハウ改善案などを入力"
-                      className="mt-1 min-h-[80px] w-full rounded-md border border-gray-300 bg-white p-2 text-sm"
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => saveResultFeedback(result.id)}
-                    disabled={savingFeedbackResultId === result.id}
-                    className="mt-3 rounded-md border border-black bg-[#f6d5ad] px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                return (
+                  <div
+                    key={caseResult.case_id}
+                    className="rounded-xl border border-gray-300 bg-white p-4 text-sm"
                   >
-                    {savingFeedbackResultId === result.id ? "保存中..." : "判定を保存"}
-                  </button>
+                    <div className="mb-3">
+                      <div className="text-lg font-bold">
+                        テストデータ{caseIndex + 1}: {caseResult.title}
+                      </div>
 
-                  {result.reviewed_at && (
-                    <div className="mt-2 text-xs text-gray-500">
-                      保存日時: {result.reviewed_at}
+                      {caseResult.document_id && (
+                        <div className="mt-1 text-xs text-gray-500">
+                          document_id: {caseResult.document_id}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+
+                    <div className="mb-4">
+                      <div className="mb-2 font-bold">テストデータ内容</div>
+                      <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md border border-gray-200 bg-gray-50 p-3 text-xs">
+                        {caseResult.content}
+                      </pre>
+                    </div>
+
+                    <div className="mb-4">
+                      <div className="mb-2 font-bold">AIレビュー結果</div>
+
+                      {caseResult.findings.length === 0 ? (
+                        <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+                          指摘なし
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-3">
+                          {caseResult.findings.map((result, index) => (
+                            <div
+                              key={result.id}
+                              className="rounded-xl border border-gray-300 bg-white p-4 text-sm"
+                            >
+                              <div className="mb-2 flex items-center justify-between gap-2">
+                                <div className="font-bold">
+                                  #{index + 1} {result.target ?? "対象不明"}
+                                </div>
+                                <span className="rounded-full border border-gray-300 px-2 py-1 text-xs">
+                                  {result.severity ?? "-"}
+                                </span>
+                              </div>
+
+                              <div className="mt-2">
+                                <strong>指摘:</strong>
+                                <div className="mt-1 whitespace-pre-wrap">
+                                  {result.finding}
+                                </div>
+                              </div>
+
+                              {result.reason && (
+                                <div className="mt-3">
+                                  <strong>理由:</strong>
+                                  <div className="mt-1 whitespace-pre-wrap">
+                                    {result.reason}
+                                  </div>
+                                </div>
+                              )}
+
+                              {result.suggestion && (
+                                <div className="mt-3">
+                                  <strong>修正案:</strong>
+                                  <div className="mt-1 whitespace-pre-wrap">
+                                    {result.suggestion}
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="mt-3 text-xs text-gray-500">
+                                <div>
+                                  <strong>rule_id:</strong> {result.rule_id ?? "-"}
+                                </div>
+                                <div>
+                                  <strong>status:</strong> {result.status ?? "-"}
+                                </div>
+                              </div>
+
+                              {result.evidences && result.evidences.length > 0 && (
+                                <div className="mt-3">
+                                  <strong>根拠:</strong>
+                                  <div className="mt-2 flex flex-col gap-2">
+                                    {result.evidences.map((evidence, evidenceIndex) => (
+                                      <div
+                                        key={`${result.id}-${evidenceIndex}`}
+                                        className="rounded bg-gray-100 p-2"
+                                      >
+                                        {evidence.location && (
+                                          <div className="mb-1 text-xs text-gray-500">
+                                            location: {evidence.location}
+                                          </div>
+                                        )}
+
+                                        {evidence.document_id && (
+                                          <div className="mb-1 text-xs text-gray-500">
+                                            document_id: {evidence.document_id}
+                                          </div>
+                                        )}
+
+                                        {evidence.chunk_id && (
+                                          <div className="mb-1 text-xs text-gray-500">
+                                            chunk_id: {evidence.chunk_id}
+                                          </div>
+                                        )}
+
+                                        <pre className="whitespace-pre-wrap text-xs">
+                                          {evidence.quote ?? "根拠テキストなし"}
+                                        </pre>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                                <div className="font-bold text-blue-900">
+                                  人間レビュー
+                                </div>
+
+                                <div className="mt-3">
+                                  <label className="block text-sm font-bold">
+                                    判定
+                                  </label>
+                                  <select
+                                    value={
+                                      feedbackDrafts[result.id]?.human_status ?? ""
+                                    }
+                                    onChange={(e) =>
+                                      updateFeedbackDraft(result.id, {
+                                        human_status: e.target.value,
+                                      })
+                                    }
+                                    className="mt-1 h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
+                                  >
+                                    <option value="">未判定</option>
+                                    <option value="correct">正しい指摘</option>
+                                    <option value="false_positive">誤検出</option>
+                                    <option value="pending">保留</option>
+                                    <option value="fixed">修正済み</option>
+                                    <option value="needs_knowhow_update">
+                                      ノウハウ改善が必要
+                                    </option>
+                                  </select>
+                                </div>
+
+                                <div className="mt-3">
+                                  <label className="block text-sm font-bold">
+                                    コメント
+                                  </label>
+                                  <textarea
+                                    value={
+                                      feedbackDrafts[result.id]?.human_comment ?? ""
+                                    }
+                                    onChange={(e) =>
+                                      updateFeedbackDraft(result.id, {
+                                        human_comment: e.target.value,
+                                      })
+                                    }
+                                    placeholder="判定理由、修正内容、ノウハウ改善案などを入力"
+                                    className="mt-1 min-h-[80px] w-full rounded-md border border-gray-300 bg-white p-2 text-sm"
+                                  />
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => saveResultFeedback(result.id)}
+                                  disabled={savingFeedbackResultId === result.id}
+                                  className="mt-3 rounded-md border border-black bg-[#f6d5ad] px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {savingFeedbackResultId === result.id
+                                    ? "保存中..."
+                                    : "判定を保存"}
+                                </button>
+
+                                {result.reviewed_at && (
+                                  <div className="mt-2 text-xs text-gray-500">
+                                    保存日時: {result.reviewed_at}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {caseResult.findings.length === 0 && (
+                      <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                        <div className="font-bold text-blue-900">人間レビュー</div>
+
+                        <div className="mt-3">
+                          <label className="block text-sm font-bold">判定</label>
+                          <select
+                            value={noFindingDraft.human_status ?? ""}
+                            onChange={(e) =>
+                              updateNoFindingFeedbackDraft(caseResult.case_id, {
+                                human_status: e.target.value,
+                              })
+                            }
+                            className="mt-1 h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
+                          >
+                            <option value="">未判定</option>
+                            <option value="correct_no_finding">指摘なしで正しい</option>
+                            <option value="missed_finding">指摘漏れ</option>
+                            <option value="pending">保留</option>
+                          </select>
+                        </div>
+
+                        <div className="mt-3">
+                          <label className="block text-sm font-bold">コメント</label>
+                          <textarea
+                            value={noFindingDraft.human_comment ?? ""}
+                            onChange={(e) =>
+                              updateNoFindingFeedbackDraft(caseResult.case_id, {
+                                human_comment: e.target.value,
+                              })
+                            }
+                            placeholder="判定理由、指摘漏れの概要などを入力"
+                            className="mt-1 min-h-[80px] w-full rounded-md border border-gray-300 bg-white p-2 text-sm"
+                          />
+                        </div>
+
+                        {isMissedFinding && (
+                          <div className="mt-3 rounded-md border border-orange-200 bg-orange-50 p-3">
+                            <div className="font-bold text-orange-900">
+                              本来出すべき指摘
+                            </div>
+
+                            <div className="mt-3">
+                              <label className="block text-sm font-bold">
+                                指摘内容
+                              </label>
+                              <textarea
+                                value={noFindingDraft.missed_finding ?? ""}
+                                onChange={(e) =>
+                                  updateNoFindingFeedbackDraft(caseResult.case_id, {
+                                    missed_finding: e.target.value,
+                                  })
+                                }
+                                placeholder="例: Checksum フラグが1だが、EHVが定義されていません。"
+                                className="mt-1 min-h-[60px] w-full rounded-md border border-gray-300 bg-white p-2 text-sm"
+                              />
+                            </div>
+
+                            <div className="mt-3">
+                              <label className="block text-sm font-bold">理由</label>
+                              <textarea
+                                value={noFindingDraft.missed_reason ?? ""}
+                                onChange={(e) =>
+                                  updateNoFindingFeedbackDraft(caseResult.case_id, {
+                                    missed_reason: e.target.value,
+                                  })
+                                }
+                                placeholder="例: Related Field ListにもEHV相当のフィールドが存在しないため。"
+                                className="mt-1 min-h-[60px] w-full rounded-md border border-gray-300 bg-white p-2 text-sm"
+                              />
+                            </div>
+
+                            <div className="mt-3">
+                              <label className="block text-sm font-bold">修正案</label>
+                              <textarea
+                                value={noFindingDraft.missed_suggestion ?? ""}
+                                onChange={(e) =>
+                                  updateNoFindingFeedbackDraft(caseResult.case_id, {
+                                    missed_suggestion: e.target.value,
+                                  })
+                                }
+                                placeholder="例: EHVフィールドを追加してください。"
+                                className="mt-1 min-h-[60px] w-full rounded-md border border-gray-300 bg-white p-2 text-sm"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <button
+                          type="button"
+                          disabled
+                          className="mt-3 rounded-md border border-gray-400 bg-gray-200 px-4 py-2 text-sm text-gray-600 disabled:cursor-not-allowed"
+                        >
+                          判定を保存
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </section>

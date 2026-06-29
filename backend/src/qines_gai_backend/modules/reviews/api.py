@@ -161,3 +161,11 @@ async def delete_review_document(
         raise HTTPException(status_code=403, detail=str(e))
     except BaseAppError as e:
         raise HTTPException(status_code=500, detail="Internal Server Error")
+    
+    
+@router.get("/{task_id}/case-results")
+async def get_review_case_results(
+    task_id: str,
+    service: ReviewService = Depends(get_review_service),
+):
+    return await service.get_review_case_results(task_id)
